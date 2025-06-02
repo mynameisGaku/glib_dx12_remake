@@ -39,6 +39,9 @@
     <ClCompile Include="EngineCore\GLibFence.cpp">
       <Filter>EngineCore</Filter>
     </ClCompile>
+    <ClCompile Include="EngineCore\GLibBackBuffer.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -78,6 +81,9 @@
       <Filter>EngineCore</Filter>
     </ClInclude>
     <ClInclude Include="EngineCore\GLibStringUtil.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibBackBuffer.h">
       <Filter>EngineCore</Filter>
     </ClInclude>
   </ItemGroup>
