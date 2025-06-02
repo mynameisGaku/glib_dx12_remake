@@ -1,15 +1,10 @@
 # ===================================
-# OS依存 一般
+# OS依存
 # ===================================
-
-# Windows
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
-*.stackdump
-
-# macOS
 .DS_Store
 .AppleDouble
 .LSOverride
@@ -18,29 +13,11 @@ Icon?
 .Spotlight-V100
 .Trashes
 
-# Linux
-*~
-.nfs*
-
 # ===================================
-# Git固有
+# Visual Studio (プロジェクトファイル除外)
 # ===================================
 
-*.orig
-*.rej
-*.patch
-*.diff
-*.swo
-*.swp
-*.tmp
-*.bak
-*.backup
-*.old
-
-# ===================================
-# Visual Studio (C++, C#, Unity)
-# ===================================
-
+# ビルド成果物
 [Bb]in/
 [Oo]bj/
 *.obj
@@ -52,16 +29,14 @@ Icon?
 *.ipdb
 *.iobj
 *.log
-*.sbr
-*.tlb
-*.tlh
-*.tmp
 *.ilk
 *.cache
 *.tlog
 *.lastbuildstate
 *.unsuccessfulbuild
+*.idb
 
+# VSユーザー設定ファイル
 *.suo
 *.user
 *.userosscache
@@ -69,15 +44,10 @@ Icon?
 *.VC.db
 *.VC.VC.opendb
 .vs/
-.vscode/
-
-# C++20 modules
-*.ifc
 
 # ===================================
 # CMake
 # ===================================
-
 CMakeCache.txt
 CMakeFiles/
 CMakeScripts/
@@ -90,16 +60,9 @@ CTestTestfile.cmake
 build/
 _build/
 
-# Ninja
-.ninja_deps
-.ninja_log
-rules.ninja
-.ninja_cache
-
 # ===================================
-# Unity (全対応)
+# Unity
 # ===================================
-
 [Ll]ibrary/
 [Tt]emp/
 [Oo]bj/
@@ -112,20 +75,9 @@ sysinfo.txt
 .collabignore
 AssetBundleBrowserConfig.json
 
-*.unityproj
-*.pidb
-*.booproj
-*.svd
-*.csproj
-*.sln
-
-unity-cloud-build/
-
 # ===================================
-# DirectX 12 / Shaders / DirectXTK
+# DirectX 12 / Shader
 # ===================================
-
-# Shader compiler outputs
 *.cso
 *.hlsl.bin
 *.hlsl.obj
@@ -135,62 +87,35 @@ unity-cloud-build/
 *.psh
 *.vsh
 
-# DirectXTK media/intermediate
-*.dds
-*.tga
-*.fbx
-*.obj (3Dモデルと衝突する場合注意)
-
-# DirectXTK-generated files (ツール生成物)
-*.gltf
-*.bin
-
 # ===================================
-# ImGui
-# ===================================
-
-# ImGui自体はヘッダーオンリーなので特別な出力物は少ないが
-# 自動生成ツール用に念の為
+# ImGui, DirectXTK系
 imgui.ini
 imgui_log.txt
-
-# Docking branchのiniファイル
+*.dds
+*.tga
+*.gltf
+*.fbx
+*.obj
 *.ini
-
-# ImGui demo capture (まれに生成)
 *.capture
 
 # ===================================
-# C# 一般
+# ソース管理に必要ない設定ファイル
+packages.config
+
+# もしパッケージ管理をやるならこちらも
+packages/
+
 # ===================================
-
-*.dll
-*.exe
-*.pdb
-*.mdb
-*.cache
-*.suo
-*.user
-*.csproj.user
-*.pidb
-*.sln.docstates
-
-# JetBrains Rider
+# IDE関連
+# ===================================
+.vscode/
 .idea/
 *.sln.iml
 
 # ===================================
-# VSCode
+# ログ・ダンプ・プロファイル
 # ===================================
-
-.vscode/
-.history/
-*.code-workspace
-
-# ===================================
-# Logs / Dump / Profiler
-# ===================================
-
 *.log
 *.dmp
 *.mdmp
@@ -199,42 +124,18 @@ imgui_log.txt
 *.sap
 
 # ===================================
-# NuGet, UnityPackageManager
+# バックアップ・一時
 # ===================================
-
-*.nupkg
-packages/
-Packages/packages-lock.json
-
-# ===================================
-# その他よくある一時ファイル
-# ===================================
-
-*.class
-*.pyc
-*.pyo
-*.lock
-*.gz
-*.tar
-*.zip
-*.7z
-*.rar
-*.tgz
-*.bak
-*.thumb
-*.sublime-workspace
-*.sublime-project
-*.cproject
-*.project
-
-# ===================================
-# バックアップ系 (エディタ全般)
-# ===================================
-
-*~
-*.sw?
-*.bak
 *.tmp
+*.bak
 *.old
 *.backup
-*.orig
+*.swp
+*.swo
+*.~*
+*~
+
+# ===================================
+# サブフォルダ内のDebugビルド成果物除外
+**/Debug/
+**/Release/
