@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="EngineCore">
+      <UniqueIdentifier>{9f48ef18-e17b-434c-bd4f-ee33bf0da960}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Game">
+      <UniqueIdentifier>{828e8192-b35d-4c06-b32f-d34386f6d686}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{2dd83876-60a2-4672-8243-1cca01648a6f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Game\main.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineCore\GLibWindow.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineCore\GLib.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineCore\GLibDevice.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineCore\GLibMessage.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineCore\GLibCommandQueue.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineCore\GLibCommandAllocator.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineCore\GLibGraphicsCommandList.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineCore\GLibFence.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="EngineCore\GLibWindow.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibDevice.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibCommandAllocator.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibGraphicsCommandList.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibCommandQueue.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibFence.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibDebug.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibLogger.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLib.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibMessage.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibComPtr.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibStringUtil.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

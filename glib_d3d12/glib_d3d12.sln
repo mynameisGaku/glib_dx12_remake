@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35327.3
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glib_d3d12", "glib_d3d12.vcxproj", "{EEAA35B3-8DDD-40E5-BE83-2152C551604B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EEAA35B3-8DDD-40E5-BE83-2152C551604B}.Debug|x64.ActiveCfg = Debug|x64
+		{EEAA35B3-8DDD-40E5-BE83-2152C551604B}.Debug|x64.Build.0 = Debug|x64
+		{EEAA35B3-8DDD-40E5-BE83-2152C551604B}.Debug|x86.ActiveCfg = Debug|Win32
+		{EEAA35B3-8DDD-40E5-BE83-2152C551604B}.Debug|x86.Build.0 = Debug|Win32
+		{EEAA35B3-8DDD-40E5-BE83-2152C551604B}.Release|x64.ActiveCfg = Release|x64
+		{EEAA35B3-8DDD-40E5-BE83-2152C551604B}.Release|x64.Build.0 = Release|x64
+		{EEAA35B3-8DDD-40E5-BE83-2152C551604B}.Release|x86.ActiveCfg = Release|Win32
+		{EEAA35B3-8DDD-40E5-BE83-2152C551604B}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {285DBE5C-9B8D-4021-BFDF-0AF0D79AE02B}
+	EndGlobalSection
+EndGlobal
