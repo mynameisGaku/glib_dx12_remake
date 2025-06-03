@@ -25,5 +25,6 @@ namespace glib
 
         static DWORD WindowStyle;
         static HWND m_HWnd;
+        static RECT m_Rect;
     };
 }

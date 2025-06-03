@@ -20,6 +20,12 @@ namespace glib
     // 描画が完了するまで待機する
     void WaitDrawDone();
 
+    // DeltaTimeを更新する
+    void RefreshDeltaTime();
+
+    // DeltaTimeを取得する
+    float DeltaTime();
+
     // ウィンドウのスタイル
     enum GLIB_WINDOW_STYLE
     {

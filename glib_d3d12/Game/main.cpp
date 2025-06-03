@@ -8,6 +8,8 @@
 
 #include <GLib.h>
 #include <GLibMessage.h>
+#include <GLibTime.h>
+#include <ImGUI/imgui.h>
 
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
@@ -21,6 +23,9 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
     {
         // GLibのレンダリング開始
         glib::BeginRender();
+
+        // GLibの時間更新
+        glib::RefreshDeltaTime();
 
         if (not glib::Message::ProcessMessage())
             break;

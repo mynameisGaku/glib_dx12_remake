@@ -9,8 +9,6 @@
 #include <GLibDevice.h>
 #include <GLib.h>
 
-glib::GLibSwapChain* glib::GLibSwapChain::m_Instance = nullptr;
-
 bool glib::GLibSwapChain::Initialize(ID3D12Device* device, UINT buffIdx)
 {
     // Swapchain作る
@@ -105,11 +103,11 @@ bool glib::GLibSwapChain::Initialize(ID3D12Device* device, UINT buffIdx)
     return true;
 }
 
-void glib::GLibSwapChain::DrawBegin()
+void glib::GLibSwapChain::DrawBegin(glib::GLibGraphicsCommandList* cmdList)
 {
     // バックバッファをクリアする
     {
-        glib::GLibGraphicsCommandList::GetInstance().Get()->Reset(glib::GLibCommandAllocator::GetInstance().Get(), nullptr);
+        cmdList->Get()->Reset(glib::GLibCommandAllocator::GetInstance().Get(), nullptr);
 
         m_BackBufIdx = m_SwapChain->GetCurrentBackBufferIndex();
 
@@ -121,25 +119,25 @@ void glib::GLibSwapChain::DrawBegin()
         barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
         barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
         barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        glib::GLibGraphicsCommandList::GetInstance().Get()->ResourceBarrier(1, &barrier);
+        cmdList->Get()->ResourceBarrier(1, &barrier);
 
         // バックバッファの場所を指すディスクリプタヒープハンドルを用意する
         auto hBbvHeap = m_BbvHeap.Get()->GetCPUDescriptorHandleForHeapStart();
         hBbvHeap.ptr += m_BackBufIdx * m_BbvHeapSize;
         // バックバッファを描画ターゲットとして設定する
-        glib::GLibGraphicsCommandList::GetInstance().Get()->OMSetRenderTargets(1, &hBbvHeap, FALSE, nullptr);
+        cmdList->Get()->OMSetRenderTargets(1, &hBbvHeap, FALSE, nullptr);
         // 描画ターゲットのクリア
         static float radian = .0f;
         float r = cos(radian) * 0.5f + 0.5f;
         float g = 0.25f;
         float b = 0.5f;
         const float clearColor[4] = { r, g, b, 1.0f };
-        radian += 0.01f; // 色を変えるために少しずつradianを増やす
-        glib::GLibGraphicsCommandList::GetInstance().Get()->ClearRenderTargetView(hBbvHeap, clearColor, 0, nullptr);
+        radian += 1.00f * glib::DeltaTime(); // 色を変えるために少しずつradianを増やす
+        cmdList->Get()->ClearRenderTargetView(hBbvHeap, clearColor, 0, nullptr);
     }
 }
 
-void glib::GLibSwapChain::DrawEnd()
+void glib::GLibSwapChain::DrawEnd(glib::GLibGraphicsCommandList* cmdList)
 {
     // バリアでバックバッファを表示用に切り替える
     D3D12_RESOURCE_BARRIER barrier = {};
@@ -149,10 +147,10 @@ void glib::GLibSwapChain::DrawEnd()
     barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
     barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
     barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    glib::GLibGraphicsCommandList::GetInstance().Get()->ResourceBarrier(1, &barrier);
+    cmdList->Get()->ResourceBarrier(1, &barrier);
 
     // コマンドリストクローズ
-    m_Hr = glib::GLibGraphicsCommandList::GetInstance().Get()->Close();
+    m_Hr = cmdList->Get()->Close();
     if (FAILED(m_Hr))
     {
         glib::Logger::FormatErrorLog("Failed to close command list. HRESULT: 0x{%X}", m_Hr);
@@ -161,7 +159,7 @@ void glib::GLibSwapChain::DrawEnd()
     glib::Logger::DebugLog("Command list closed successfully.");
 
     // コマンドリストを実行
-    ID3D12CommandList* commandLists[] = { glib::GLibGraphicsCommandList::GetInstance().Get() };
+    ID3D12CommandList* commandLists[] = { cmdList->Get() };
     glib::GLibCommandQueue::GetInstance().Get()->ExecuteCommandLists(_countof(commandLists), commandLists);
 
     // 描画完了を待つ

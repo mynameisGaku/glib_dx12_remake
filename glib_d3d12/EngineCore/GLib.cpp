@@ -9,10 +9,28 @@
 #include <GLibDescriptorHeap.h>
 #include <GLibDescriptorPool.h>
 #include <GLibSwapChain.h>
+#include <GLibTime.h>
+#include <GLibPipeline.h>
+#include <GLibMemory.h>
+
+/* imgui */
+#include <ImGUI/imgui.h>
+#include <ImGUI/imgui_impl_win32.h>
+#include <ImGUI/imgui_impl_dx12.h>
 
 /* pragma link */
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
+
+namespace glib
+{
+    const int SHADER_MAX = 10;
+    const int BACKBUFF_MAX = 2;
+    GLibDescriptorPool*         pDescriptorPool;
+    GLibPipeline                pPipeline[SHADER_MAX];
+    GLibGraphicsCommandList     GraphicsCommandList[SHADER_MAX];
+    glib::GLibSwapChain         SwapChain;
+}
 
 bool glib::Init()
 {
@@ -45,6 +63,12 @@ bool glib::Init()
     DescriptorPool
     |
     SwapChain
+    |
+    Pipeline
+    |
+    Time
+    |
+    ImGui
     */
 
     // Initialize the device
@@ -56,7 +80,7 @@ bool glib::Init()
 
 
     // Initialize the command list
-    glib::GLibGraphicsCommandList::GetInstance().Initialize(glib::GLibDevice::GetInstance().Get(), glib::GLibCommandAllocator::GetInstance().Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
+    GraphicsCommandList[0].Initialize(glib::GLibDevice::GetInstance().Get(), glib::GLibCommandAllocator::GetInstance().Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
 
 
     // Initialize the command queue
@@ -83,12 +107,43 @@ bool glib::Init()
 
 
     // Initialize the swap chain
-    if (!glib::GLibSwapChain::GetInstance().Initialize(glib::GLibDevice::GetInstance().Get(), 2))
+    if (!SwapChain.Initialize(glib::GLibDevice::GetInstance().Get(), 2))
     {
         glib::Logger::ErrorLog("Failed to initialize swap chain.");
         return false;
     }
 
+    // Initialize the time management
+    glib::GLibTime::GetInstance().SetLevelLoaded();
+
+    // imgui
+    {
+        // Setup Dear ImGui context
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO(); (void)io;
+        //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+        //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+        // Setup Dear ImGui style
+        ImGui::StyleColorsDark();
+        //ImGui::StyleColorsClassic();
+
+        D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+        srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        srvHeapDesc.NumDescriptors = 1000; // Number of descriptors in the heap
+        srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV; // Shader Resource View heap type
+        glib::GLibDescriptorPool::GetInstance().Allocate("ImGuiSRVHeap", srvHeapDesc);
+
+        auto imguiHeap = glib::GLibDescriptorPool::GetInstance().Get("ImGuiSRVHeap");
+
+        // Setup Platform/Renderer backends
+        ImGui_ImplWin32_Init(glib::Window::m_HWnd);
+        ImGui_ImplDX12_Init(glib::GLibDevice::GetInstance().Get(), 2,
+            DXGI_FORMAT_R8G8B8A8_UNORM, imguiHeap,
+            imguiHeap->GetCPUDescriptorHandleForHeapStart(),
+            imguiHeap->GetGPUDescriptorHandleForHeapStart());
+    }
 
     glib::Logger::CriticalLog("GLib initialized successfully.");
     return true;
@@ -96,18 +151,32 @@ bool glib::Init()
 
 void glib::BeginRender()
 {
-    glib::GLibSwapChain::GetInstance().DrawBegin();
+    RECT rect;
+    GetClientRect(glib::Window::m_HWnd, &rect);
+
+    ImGui_ImplDX12_NewFrame();
+    ImGui_ImplWin32_NewFrame((float)(rect.right - rect.left) / glib::Window::ClientWidth, (float)(rect.bottom - rect.top) / (float)glib::Window::ClientHeight, (float)glib::Window::ClientWidth, (float)glib::Window::ClientHeight);
+    ImGui::NewFrame();
+    SwapChain.DrawBegin(&GraphicsCommandList[0]);
 }
 
 void glib::EndRender()
 {
-    glib::GLibSwapChain::GetInstance().DrawEnd();
+    ImGui::Render();
+
+    SwapChain.DrawEnd(&GraphicsCommandList[0]);
     WaitDrawDone();
 }
 
 void glib::Release()
 {
     WaitDrawDone();
+
+    ImGui_ImplDX12_Shutdown();
+    ImGui_ImplWin32_Shutdown();
+    ImGui::DestroyContext();
+
+    glib::GLibDescriptorPool::GetInstance().Free("ImGuiSRVHeap");
 
     // D3D12 Release
     /*
@@ -125,11 +194,9 @@ void glib::Release()
     |
     Device
     */
-    glib::GLibSwapChain::GetInstance().Release();
     glib::GLibDescriptorPool::GetInstance().Release();
     glib::GLibFence::GetInstance().Release();
     glib::GLibCommandQueue::GetInstance().Release();
-    glib::GLibGraphicsCommandList::GetInstance().Release();
     glib::GLibCommandAllocator::GetInstance().Release();
     glib::GLibDevice::GetInstance().Release();
 
@@ -140,6 +207,8 @@ void glib::Release()
         glib::Window::m_HWnd = nullptr;
     }
 
+    glib::GLibTime::GetInstance().Destroy();
+
     // Log release message
     glib::Logger::CriticalLog("GLib released successfully.");
 }
@@ -147,6 +216,16 @@ void glib::Release()
 void glib::WaitDrawDone()
 {
     glib::GLibFence::GetInstance().WaitDrawDone();
+}
+
+void glib::RefreshDeltaTime()
+{
+    glib::GLibTime::GetInstance().Update();
+}
+
+float glib::DeltaTime()
+{
+    return glib::GLibTime::GetInstance().DeltaTime();
 }
 
 void glib::ShowWindow()

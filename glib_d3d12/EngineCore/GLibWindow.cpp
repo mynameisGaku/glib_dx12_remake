@@ -9,6 +9,7 @@ int glib::Window::ClientPosY = (GetSystemMetrics(SM_CYSCREEN) - ClientHeight) / 
 float glib::Window::Aspect = static_cast<float>(ClientWidth) / static_cast<float>(ClientHeight);
 DWORD glib::Window::WindowStyle = WS_OVERLAPPEDWINDOW;
 HWND glib::Window::m_HWnd = nullptr;
+RECT glib::Window::m_Rect{};
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -46,12 +47,12 @@ void glib::Window::Finalize(const LPCWSTR& wndName, int width, int height)
 
     // 表示位置、ウィンドウの大きさ調整
     {
-        RECT windowRect = { 0, 0, ClientWidth, ClientHeight };
-        AdjustWindowRect(&windowRect, WindowStyle, FALSE);
-        int windowPosX = ClientPosX + windowRect.left;
-        int windowPosY = ClientPosY + windowRect.top;
-        int windowWidth = windowRect.right - windowRect.left;
-        int windowHeight = windowRect.bottom - windowRect.top;
+        m_Rect = { 0, 0, ClientWidth, ClientHeight };
+        AdjustWindowRect(&m_Rect, WindowStyle, FALSE);
+        int windowPosX = ClientPosX + m_Rect.left;
+        int windowPosY = ClientPosY + m_Rect.top;
+        int windowWidth = m_Rect.right - m_Rect.left;
+        int windowHeight = m_Rect.bottom - m_Rect.top;
         // ウィンドウを作る
         m_HWnd = CreateWindowEx(
             0,

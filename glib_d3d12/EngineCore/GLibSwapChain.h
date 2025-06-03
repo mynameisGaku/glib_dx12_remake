@@ -7,12 +7,13 @@
 #include <vector>
 #include <Windows.h>
 #include <GLibDescriptorPool.h>
+#include <GLibGraphicsCommandList.h>
 
 namespace glib
 {
     class GLibSwapChain
     {
-    private:
+    public:
         GLibSwapChain() = default;
         ~GLibSwapChain()
         {
@@ -21,27 +22,6 @@ namespace glib
             glib::Logger::DebugLog("BackBuffers cleared successfully.");
             glib::Logger::DebugLog("SwapChain released successfully.");
             glib::Logger::DebugLog("SwapChain RTV Heap freed successfully.");
-        }
-        static GLibSwapChain* m_Instance;
-    public:
-
-        static GLibSwapChain& GetInstance()
-        {
-            if (!m_Instance)
-            {
-                m_Instance = new GLibSwapChain();
-            }
-            return *m_Instance;
-        }
-
-        static void Release()
-        {
-            if (m_Instance)
-            {
-                delete m_Instance;
-                m_Instance = nullptr;
-            }
-            glib::Logger::DebugLog("GLibSwapChain released successfully.");
         }
 
         bool Initialize(ID3D12Device* device, UINT buffIdx);
@@ -59,8 +39,8 @@ namespace glib
             return nullptr;
         }
 
-        void DrawBegin();
-        void DrawEnd();
+        void DrawBegin(glib::GLibGraphicsCommandList* cmdList);
+        void DrawEnd(glib::GLibGraphicsCommandList* cmdList);
 
     private:
         ComPtr<IDXGISwapChain4> m_SwapChain;

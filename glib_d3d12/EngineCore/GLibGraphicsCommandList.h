@@ -7,31 +7,9 @@ namespace glib
 {
     class GLibGraphicsCommandList
     {
-    private:
+    public:
         GLibGraphicsCommandList() {}
         ~GLibGraphicsCommandList() {}
-
-        static GLibGraphicsCommandList* m_Instance;
-    public:
-        static GLibGraphicsCommandList& GetInstance()
-        {
-            if (!m_Instance)
-            {
-                m_Instance = new GLibGraphicsCommandList();
-            }
-            return *m_Instance;
-        }
-
-        static void Release()
-        {
-            if (m_Instance)
-            {
-                delete m_Instance;
-            }
-            m_Instance = nullptr;
-
-            glib::Logger::DebugLog("GLibGraphicsCommandList released successfully.");
-        }
 
         void Initialize(ID3D12Device* device, ID3D12CommandAllocator* commandAllocator, const D3D12_COMMAND_LIST_TYPE& type);
 
