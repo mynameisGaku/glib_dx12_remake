@@ -1,4 +1,5 @@
 #include "GLibFence.h"
+#include <GLibCommandQueue.h>
 
 /* static instance initialize*/
 glib::GLibFence* glib::GLibFence::m_Instance = nullptr;
@@ -12,8 +13,8 @@ bool glib::GLibFence::Initialize(ID3D12Device* device, const D3D12_FENCE_FLAGS& 
         return false;
     }
 
-    m_EventHandle = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-    if (!m_EventHandle)
+    m_FenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+    if (!m_FenceEvent)
     {
         Logger::FormatErrorLog("Failed to create event handle");
         return false;
@@ -23,43 +24,26 @@ bool glib::GLibFence::Initialize(ID3D12Device* device, const D3D12_FENCE_FLAGS& 
     return true;
 }
 
-UINT64 glib::GLibFence::Signal()
+void glib::GLibFence::WaitDrawDone()
 {
+    UINT64 fvalue = m_FenceValue;
+    glib::GLibCommandQueue::GetInstance().Get()->Signal(m_Fence.Get(), fvalue);
     m_FenceValue++;
-    m_Hr = m_Fence->Signal(m_FenceValue);
-    if (FAILED(m_Hr))
+
+    if (m_Fence->GetCompletedValue() < fvalue)
     {
-        Logger::FormatErrorLog("Failed to signal fence. HRESULT: 0x{:X}", m_Hr);
-        return 0;
-    }
+        m_Fence->SetEventOnCompletion(fvalue, m_FenceEvent);
 
-    // Reset the event handle
-    ResetEvent(m_EventHandle);
-    return m_FenceValue;
-}
-
-void glib::GLibFence::WaitForSignal(UINT64 fenceValue)
-{
-    if (m_Fence->GetCompletedValue() < fenceValue)
-    {
-        m_Hr = m_Fence->SetEventOnCompletion(fenceValue, m_EventHandle);
-        if (FAILED(m_Hr))
-        {
-            Logger::FormatErrorLog("Failed to set event on fence completion. HRESULT: 0x{:X}", m_Hr);
-            return;
-        }
-
-        // Wait for the event to be signaled
-        WaitForSingleObject(m_EventHandle, INFINITE);
+        WaitForSingleObject(m_FenceEvent, INFINITE);
     }
 }
 
 void glib::GLibFence::Close()
 {
-    if (m_EventHandle)
+    if (m_FenceEvent)
     {
-        CloseHandle(m_EventHandle);
-        m_EventHandle = nullptr;
+        CloseHandle(m_FenceEvent);
+        m_FenceEvent = nullptr;
     }
 
     if (m_Fence)

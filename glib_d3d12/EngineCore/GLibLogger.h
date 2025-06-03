@@ -96,33 +96,73 @@ namespace glib
             Log(LogLevel::Critical, message.c_str());
         }
 
-        static void FormatDebugLog(const std::string& message, ...)
+        static void FormatDebugLog(const char* format, ...)
         {
 #ifndef _DEBUG
             return;
 #else
-            FormatLog(LogLevel::Debug, "[DEBUG] %s", message.c_str());
+            va_list args;
+            va_start(args, format);
+            char buffer[1024];
+            vsnprintf(buffer, sizeof(buffer), format, args);
+            va_end(args);
+
+            std::string s(buffer);
+            s.insert(0, "[DEBUG] ");
+            Log(LogLevel::Debug , buffer);
 #endif
         }
 
-        static void FormatInfoLog(const std::string& message, ...)
+        static void FormatInfoLog(const char* format, ...)
         {
-            FormatLog(LogLevel::Info, "[INFO] %s", message.c_str());
+            va_list args;
+            va_start(args, format);
+            char buffer[1024];
+            vsnprintf(buffer, sizeof(buffer), format, args);
+            va_end(args);
+
+            std::string s(buffer);
+            s.insert(0, "[INFO] ");
+            Log(LogLevel::Info, buffer);
         }
 
-        static void FormatWarningLog(const std::string& message, ...)
+        static void FormatWarningLog(const char* format, ...)
         {
-            FormatLog(LogLevel::Warning, "[WARNING] %s", message.c_str());
+            va_list args;
+            va_start(args, format);
+            char buffer[1024];
+            vsnprintf(buffer, sizeof(buffer), format, args);
+            va_end(args);
+
+            std::string s(buffer);
+            s.insert(0, "[WARNING] ");
+            Log(LogLevel::Warning, buffer);
         }
 
-        static void FormatErrorLog(const std::string& message, ...)
+        static void FormatErrorLog(const char* format, ...)
         {
-            FormatLog(LogLevel::Error, "[ERROR] %s", message.c_str());
+            va_list args;
+            va_start(args, format);
+            char buffer[1024];
+            vsnprintf(buffer, sizeof(buffer), format, args);
+            va_end(args);
+
+            std::string s(buffer);
+            s.insert(0, "[Error] ");
+            Log(LogLevel::Error, buffer);
         }
 
-        static void FormatCriticalLog(const std::string& message, ...)
+        static void FormatCriticalLog(const char* format, ...)
         {
-            FormatLog(LogLevel::Critical, "[CRITICAL] %s", message.c_str());
+            va_list args;
+            va_start(args, format);
+            char buffer[1024];
+            vsnprintf(buffer, sizeof(buffer), format, args);
+            va_end(args);
+
+            std::string s(buffer);
+            s.insert(0, "[CRITICAL] ");
+            Log(LogLevel::Critical, buffer);
         }
     }
 }

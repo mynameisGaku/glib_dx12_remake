@@ -19,8 +19,14 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 
     while (true)
     {
+        // GLibのレンダリング開始
+        glib::BeginRender();
+
         if (not glib::Message::ProcessMessage())
             break;
+
+        // GLibのレンダリング終了
+        glib::EndRender();
     }
 
     glib::Release();

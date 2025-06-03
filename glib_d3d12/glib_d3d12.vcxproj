@@ -144,13 +144,21 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="EngineCore\GLib.cpp" />
-    <ClCompile Include="EngineCore\GLibBackBuffer.cpp" />
+    <ClCompile Include="EngineCore\GLibSwapChain.cpp" />
     <ClCompile Include="EngineCore\GLibCommandAllocator.cpp" />
     <ClCompile Include="EngineCore\GLibCommandQueue.cpp" />
+    <ClCompile Include="EngineCore\GLibConstantBuffer.cpp" />
+    <ClCompile Include="EngineCore\GLibDescriptorHeap.cpp" />
+    <ClCompile Include="EngineCore\GLibDescriptorPool.cpp" />
     <ClCompile Include="EngineCore\GLibDevice.cpp" />
     <ClCompile Include="EngineCore\GLibFence.cpp" />
     <ClCompile Include="EngineCore\GLibGraphicsCommandList.cpp" />
+    <ClCompile Include="EngineCore\GLibIndexBuffer.cpp" />
     <ClCompile Include="EngineCore\GLibMessage.cpp" />
+    <ClCompile Include="EngineCore\GLibPipeline.cpp" />
+    <ClCompile Include="EngineCore\GLibRootSignature.cpp" />
+    <ClCompile Include="EngineCore\GLibTexture.cpp" />
+    <ClCompile Include="EngineCore\GLibVertexBuffer.cpp" />
     <ClCompile Include="EngineCore\GLibWindow.cpp" />
     <ClCompile Include="Game\main.cpp" />
   </ItemGroup>
@@ -159,17 +167,25 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineCore\GLib.h" />
-    <ClInclude Include="EngineCore\GLibBackBuffer.h" />
+    <ClInclude Include="EngineCore\GLibSwapChain.h" />
     <ClInclude Include="EngineCore\GLibCommandAllocator.h" />
     <ClInclude Include="EngineCore\GLibCommandQueue.h" />
     <ClInclude Include="EngineCore\GLibComPtr.h" />
+    <ClInclude Include="EngineCore\GLibConstantBuffer.h" />
     <ClInclude Include="EngineCore\GLibDebug.h" />
+    <ClInclude Include="EngineCore\GLibDescriptorHeap.h" />
+    <ClInclude Include="EngineCore\GLibDescriptorPool.h" />
     <ClInclude Include="EngineCore\GLibDevice.h" />
     <ClInclude Include="EngineCore\GLibFence.h" />
     <ClInclude Include="EngineCore\GLibGraphicsCommandList.h" />
+    <ClInclude Include="EngineCore\GLibIndexBuffer.h" />
     <ClInclude Include="EngineCore\GLibLogger.h" />
     <ClInclude Include="EngineCore\GLibMessage.h" />
+    <ClInclude Include="EngineCore\GLibPipeline.h" />
+    <ClInclude Include="EngineCore\GLibRootSignature.h" />
     <ClInclude Include="EngineCore\GLibStringUtil.h" />
+    <ClInclude Include="EngineCore\GLibTexture.h" />
+    <ClInclude Include="EngineCore\GLibVertexBuffer.h" />
     <ClInclude Include="EngineCore\GLibWindow.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

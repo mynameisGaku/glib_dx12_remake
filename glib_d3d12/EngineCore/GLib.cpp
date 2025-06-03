@@ -6,9 +6,13 @@
 #include <GLibGraphicsCommandList.h>
 #include <GLibFence.h>
 #include <GLibStringUtil.h>
+#include <GLibDescriptorHeap.h>
+#include <GLibDescriptorPool.h>
+#include <GLibSwapChain.h>
 
 /* pragma link */
 #pragma comment(lib, "d3d12.lib")
+#pragma comment(lib, "dxgi.lib")
 
 bool glib::Init()
 {
@@ -37,6 +41,10 @@ bool glib::Init()
     CommandQueue
     |
     Fence
+    |
+    DescriptorPool
+    |
+    SwapChain
     */
 
     // Initialize the device
@@ -62,15 +70,51 @@ bool glib::Init()
     glib::GLibFence::GetInstance().Initialize(glib::GLibDevice::GetInstance().Get(), D3D12_FENCE_FLAG_NONE);
 
 
-    glib::Logger::DebugLog("GLib initialized successfully.");
+    // Initialize the descriptor pool
+    if (!glib::GLibDescriptorPool::GetInstance().Initialize(glib::GLibDevice::GetInstance().Get()))
+    {
+        glib::Logger::ErrorLog("Failed to initialize descriptor pool.");
+        return false;
+    }
+
+
+    // Initialize the descriptor pool
+    glib::GLibDescriptorPool::GetInstance().Initialize(glib::GLibDevice::GetInstance().Get());
+
+
+    // Initialize the swap chain
+    if (!glib::GLibSwapChain::GetInstance().Initialize(glib::GLibDevice::GetInstance().Get(), 2))
+    {
+        glib::Logger::ErrorLog("Failed to initialize swap chain.");
+        return false;
+    }
+
+
+    glib::Logger::CriticalLog("GLib initialized successfully.");
     return true;
+}
+
+void glib::BeginRender()
+{
+    glib::GLibSwapChain::GetInstance().DrawBegin();
+}
+
+void glib::EndRender()
+{
+    glib::GLibSwapChain::GetInstance().DrawEnd();
+    WaitDrawDone();
 }
 
 void glib::Release()
 {
+    WaitDrawDone();
 
     // D3D12 Release
     /*
+    SwapChain
+    |
+    DescriptorPool
+    |
     Fence
     |
     CommandQueue
@@ -81,6 +125,8 @@ void glib::Release()
     |
     Device
     */
+    glib::GLibSwapChain::GetInstance().Release();
+    glib::GLibDescriptorPool::GetInstance().Release();
     glib::GLibFence::GetInstance().Release();
     glib::GLibCommandQueue::GetInstance().Release();
     glib::GLibGraphicsCommandList::GetInstance().Release();
@@ -95,7 +141,12 @@ void glib::Release()
     }
 
     // Log release message
-    glib::Logger::DebugLog("GLib released successfully.");
+    glib::Logger::CriticalLog("GLib released successfully.");
+}
+
+void glib::WaitDrawDone()
+{
+    glib::GLibFence::GetInstance().WaitDrawDone();
 }
 
 void glib::ShowWindow()

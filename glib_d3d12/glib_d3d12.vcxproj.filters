@@ -39,7 +39,31 @@
     <ClCompile Include="EngineCore\GLibFence.cpp">
       <Filter>EngineCore</Filter>
     </ClCompile>
-    <ClCompile Include="EngineCore\GLibBackBuffer.cpp">
+    <ClCompile Include="EngineCore\GLibSwapChain.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineCore\GLibDescriptorHeap.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineCore\GLibRootSignature.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineCore\GLibPipeline.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineCore\GLibVertexBuffer.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineCore\GLibIndexBuffer.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineCore\GLibTexture.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineCore\GLibConstantBuffer.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineCore\GLibDescriptorPool.cpp">
       <Filter>EngineCore</Filter>
     </ClCompile>
   </ItemGroup>
@@ -83,7 +107,31 @@
     <ClInclude Include="EngineCore\GLibStringUtil.h">
       <Filter>EngineCore</Filter>
     </ClInclude>
-    <ClInclude Include="EngineCore\GLibBackBuffer.h">
+    <ClInclude Include="EngineCore\GLibSwapChain.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibDescriptorHeap.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibRootSignature.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibPipeline.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibVertexBuffer.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibIndexBuffer.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibTexture.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibConstantBuffer.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibDescriptorPool.h">
       <Filter>EngineCore</Filter>
     </ClInclude>
   </ItemGroup>

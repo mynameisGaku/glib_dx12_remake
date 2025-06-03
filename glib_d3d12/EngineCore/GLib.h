@@ -17,6 +17,9 @@ namespace glib
     // GLibを解放する
     void Release();
 
+    // 描画が完了するまで待機する
+    void WaitDrawDone();
+
     // ウィンドウのスタイル
     enum GLIB_WINDOW_STYLE
     {

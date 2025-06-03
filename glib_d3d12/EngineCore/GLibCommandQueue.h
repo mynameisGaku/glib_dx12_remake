@@ -29,6 +29,8 @@ namespace glib
                 delete m_Instance;
             }
             m_Instance = nullptr;
+
+            glib::Logger::DebugLog("GLibCommandQueue released successfully.");
         }
 
         bool Initialize(ID3D12Device* device, const D3D12_COMMAND_QUEUE_DESC& desc);

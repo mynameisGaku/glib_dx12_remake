@@ -2,6 +2,7 @@
 #include <GLibComPtr.h>
 #include <d3d12.h>
 #include <d3dcommon.h>
+#include "GLibLogger.h"
 
 namespace glib
 {
@@ -33,6 +34,8 @@ namespace glib
                 delete m_Instance;
             }
             m_Instance = nullptr;
+
+            glib::Logger::DebugLog("GLibDevice released successfully.");
         }
 
         bool Initialize(const D3D_FEATURE_LEVEL& level);
