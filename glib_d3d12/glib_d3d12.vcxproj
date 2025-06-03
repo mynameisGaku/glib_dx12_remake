@@ -167,6 +167,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineCore\GLib.h" />
+    <ClInclude Include="EngineCore\GLibPipelinePool.h" />
     <ClInclude Include="EngineCore\GLibSwapChain.h" />
     <ClInclude Include="EngineCore\GLibCommandAllocator.h" />
     <ClInclude Include="EngineCore\GLibCommandQueue.h" />
