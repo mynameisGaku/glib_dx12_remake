@@ -24,84 +24,84 @@ namespace glib
         };
 
         /// <summary>毎フレーム更新（通常Update用）</summary>
-        static void Update();
+        void Update();
 
         /// <summary>FixedUpdate開始時に呼び出す</summary>
-        static void BeginFixedUpdate();
+        void BeginFixedUpdate();
 
         /// <summary>FixedUpdate終了時に呼び出す</summary>
-        static void EndFixedUpdate();
+        void EndFixedUpdate();
 
         /// <summary>シーン切り替え時に呼び出す</summary>
-        static void SetLevelLoaded();
+        void SetLevelLoaded();
 
         /// <summary>DeltaTime（timeScaleの影響あり）</summary>
-        static float DeltaTime();
+        float DeltaTime();
 
         /// <summary>UnscaledDeltaTime（timeScaleの影響なし）</summary>
-        static float UnscaledDeltaTime();
+        float UnscaledDeltaTime();
 
         /// <summary>FixedDeltaTime（timeScaleの影響あり）</summary>
-        static float FixedDeltaTime();
+        float FixedDeltaTime();
 
         /// <summary>FixedUnscaledDeltaTime（常に固定値）</summary>
-        static float FixedUnscaledDeltaTime();
+        float FixedUnscaledDeltaTime();
 
         /// <summary>起動からの累計時間（timeScaleの影響あり）</summary>
-        static float TotalTime();
+        float TotalTime();
 
         /// <summary>起動からの累計時間 int版（timeScaleの影響あり）</summary>
-        static int   TotalTimeInt();
+        int   TotalTimeInt();
 
         /// <summary>起動からの累計時間（timeScaleの影響なし）</summary>
-        static float UnscaledTime();
+        float UnscaledTime();
 
         /// <summary>起動からのリアル時間（UnscaledTimeと同等）</summary>
-        static float RealtimeSinceStartup();
+        float RealtimeSinceStartup();
 
         /// <summary>シーン読み込みからの経過時間（timeScaleの影響あり）</summary>
-        static float TimeSinceLevelLoad();
+        float TimeSinceLevelLoad();
 
         /// <summary>現在のフレーム数</summary>
-        static int FrameCount();
+        int FrameCount();
 
         /// <summary>FixedUpdate中かどうか</summary>
-        static bool InFixedTimeStep();
+        bool InFixedTimeStep();
 
         /// <summary>滑らかに補間されたDeltaTime</summary>
-        static float SmoothDeltaTime();
+        float SmoothDeltaTime();
 
         /// <summary>DeltaTimeの上限値</summary>
-        static float MaximumDeltaTime();
+        float MaximumDeltaTime();
 
         /// <summary>時間倍率を設定</summary>
-        static void SetTimeScale(float scale);
+        void SetTimeScale(float scale);
 
         /// <summary>現在の時間倍率を取得</summary>
-        static float GetTimeScale();
+        float GetTimeScale();
 
         /// <summary>FixedDeltaTimeを設定</summary>
-        static void SetFixedDeltaTime(float fixedDelta);
+        void SetFixedDeltaTime(float fixedDelta);
 
         /// <summary>DeltaTimeの最大値を設定</summary>
-        static void SetMaximumDeltaTime(float maxDelta);
+        void SetMaximumDeltaTime(float maxDelta);
 
         /// <summary>
         /// ヒットストップを設定する
         /// </summary>
         /// <param name="frame">フレーム数</param>
-        static void SetHitStop(int frame);
+        void SetHitStop(int frame);
 
         /// <summary>
         /// 現在のヒットストップのフレーム数を取得する
         /// </summary>
-        static int HitStop();
+        int HitStop();
 
         /// <summary>
         /// ヒットストップ中か
         /// </summary>
         /// <returns>ヒットストップ中ならtrue</returns>
-        static bool IsHitStop();
+        bool IsHitStop();
 
         //==================================================
         // ▼変換
@@ -132,22 +132,22 @@ namespace glib
 
     private:
 
-        static void initialize();
-        static bool m_Initialized;
+        void initialize();
+        bool m_Initialized;
 
-        static std::chrono::high_resolution_clock::time_point m_StartTime;
-        static std::chrono::high_resolution_clock::time_point m_LastTime;
-        static std::chrono::high_resolution_clock::time_point m_LevelLoadTime;
+        std::chrono::high_resolution_clock::time_point m_StartTime;
+        std::chrono::high_resolution_clock::time_point m_LastTime;
+        std::chrono::high_resolution_clock::time_point m_LevelLoadTime;
 
-        static float m_DeltaTime;
-        static float m_TimeScale;
-        static float m_UnscaledDeltaTime;
-        static float m_SmoothDeltaTime;
-        static float m_FixedDeltaTime;
-        static float m_MaximumDeltaTime;
-        static int m_FrameCount;
-        static int m_HitStop;
-        static bool m_InFixedTimeStep;
-        static std::deque<float> deltaHistory;
+        float m_DeltaTime;
+        float m_TimeScale;
+        float m_UnscaledDeltaTime;
+        float m_SmoothDeltaTime;
+        float m_FixedDeltaTime;
+        float m_MaximumDeltaTime;
+        int m_FrameCount;
+        int m_HitStop;
+        bool m_InFixedTimeStep;
+        std::deque<float> deltaHistory;
     };
 }

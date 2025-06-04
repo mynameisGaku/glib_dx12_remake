@@ -2,23 +2,6 @@
 #include <algorithm>
 #include <deque>
 
-bool glib::GLibTime::m_Initialized = false;
-std::chrono::high_resolution_clock::time_point glib::GLibTime::m_StartTime;
-std::chrono::high_resolution_clock::time_point glib::GLibTime::m_LastTime;
-std::chrono::high_resolution_clock::time_point glib::GLibTime::m_LevelLoadTime;
-
-float glib::GLibTime::m_DeltaTime = 0.0f;
-float glib::GLibTime::m_UnscaledDeltaTime = 0.0f;
-float glib::GLibTime::m_SmoothDeltaTime = 0.0f;
-float glib::GLibTime::m_FixedDeltaTime = 1.0f / 60.0f;
-float glib::GLibTime::m_TimeScale = 1.0f;
-float glib::GLibTime::m_MaximumDeltaTime = 0.3333f;
-int glib::GLibTime::m_FrameCount = 0;
-int glib::GLibTime::m_HitStop = 0;
-bool glib::GLibTime::m_InFixedTimeStep = false;
-
-std::deque<float> glib::GLibTime::deltaHistory;
-
 void glib::GLibTime::initialize()
 {
     m_StartTime = std::chrono::high_resolution_clock::now();
