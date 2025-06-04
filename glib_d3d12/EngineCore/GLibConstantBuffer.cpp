@@ -2,10 +2,31 @@
 #include <GLibDescriptorPool.h>
 #include <GLibDevice.h>
 
-bool glib::GLibConstantBuffer::Initialize(ID3D12Device* device, const D3D12_RESOURCE_DESC& desc)
+glib::GLibConstantBuffer::~GLibConstantBuffer()
 {
+    if (m_ConstantBuffer)
+        m_ConstantBuffer.Reset();
+
+    if (m_pConstantHeap)
+        m_pConstantHeap->Release();
+
+    if (m_pConstBufferData)
+        m_ConstantBuffer->Unmap(0, nullptr);
+
+    m_pConstBufferData = nullptr;
+    m_pDevice = nullptr;
+    m_pDescriptorPool = nullptr;
+    glib::Logger::DebugLog("Constant buffer resources released successfully.");
+}
+
+bool glib::GLibConstantBuffer::Initialize(GLibDevice* device, const D3D12_RESOURCE_DESC& desc)
+{
+    m_pDevice = device;
+
+
+
     // 定数バッファ用のHeap作る
-    if (glib::GLibDescriptorPool::GetInstance().Get("ConstantBufferHeap") == nullptr)
+    if (m_pDescriptorPool->Get("ConstantBufferHeap") == nullptr)
     {
         D3D12_DESCRIPTOR_HEAP_DESC desc = {};
         desc.NumDescriptors = 1;
@@ -13,7 +34,7 @@ bool glib::GLibConstantBuffer::Initialize(ID3D12Device* device, const D3D12_RESO
         // DescriptorHeap内にCBV,SRV,UAVは混在可能
         // DescriptorHeapのどの範囲をどのレジスタに割り当てるかは、ルートシグネチャ作成時のRangeとParameterで決定する
         desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE; // シェーダーからアクセスする
-        m_pConstantHeap = glib::GLibDescriptorPool::GetInstance().Allocate("ConstantBufferHeap", desc);
+        m_pConstantHeap = m_pDescriptorPool->Allocate("ConstantBufferHeap", desc);
     }
 
     // 定数バッファのリソースを作成
@@ -27,7 +48,7 @@ bool glib::GLibConstantBuffer::Initialize(ID3D12Device* device, const D3D12_RESO
         prop.VisibleNodeMask = 1;
 
         // リソースの生成
-        m_Hr= glib::GLibDevice::GetInstance().Get()->CreateCommittedResource(
+        m_Hr = m_pDevice->Get()->CreateCommittedResource(
             &prop, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(m_ConstantBuffer.GetAddressOf()));
 
         if (FAILED(m_Hr))
@@ -45,7 +66,7 @@ bool glib::GLibConstantBuffer::Initialize(ID3D12Device* device, const D3D12_RESO
 
         desc.SizeInBytes = 256;
 
-        glib::GLibDevice::GetInstance().Get()->CreateConstantBufferView(&desc, m_pConstantHeap->GetCPUDescriptorHandleForHeapStart());
+        m_pDevice->Get()->CreateConstantBufferView(&desc, m_pConstantHeap->GetCPUDescriptorHandleForHeapStart());
 
     }
 

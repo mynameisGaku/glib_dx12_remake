@@ -162,12 +162,6 @@
     <ClCompile Include="EngineCore\GLibVertexBuffer.cpp" />
     <ClCompile Include="EngineCore\GLibWindow.cpp" />
     <ClCompile Include="Game\main.cpp" />
-    <ClCompile Include="Vendor\ImGUI\imgui.cpp" />
-    <ClCompile Include="Vendor\ImGUI\imgui_demo.cpp" />
-    <ClCompile Include="Vendor\ImGUI\imgui_draw.cpp" />
-    <ClCompile Include="Vendor\ImGUI\imgui_impl_dx12.cpp" />
-    <ClCompile Include="Vendor\ImGUI\imgui_impl_win32.cpp" />
-    <ClCompile Include="Vendor\ImGUI\imgui_widgets.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -196,14 +190,6 @@
     <ClInclude Include="EngineCore\GLibTime.h" />
     <ClInclude Include="EngineCore\GLibVertexBuffer.h" />
     <ClInclude Include="EngineCore\GLibWindow.h" />
-    <ClInclude Include="Vendor\ImGUI\imconfig.h" />
-    <ClInclude Include="Vendor\ImGUI\imgui.h" />
-    <ClInclude Include="Vendor\ImGUI\imgui_impl_dx12.h" />
-    <ClInclude Include="Vendor\ImGUI\imgui_impl_win32.h" />
-    <ClInclude Include="Vendor\ImGUI\imgui_internal.h" />
-    <ClInclude Include="Vendor\ImGUI\imstb_rectpack.h" />
-    <ClInclude Include="Vendor\ImGUI\imstb_textedit.h" />
-    <ClInclude Include="Vendor\ImGUI\imstb_truetype.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

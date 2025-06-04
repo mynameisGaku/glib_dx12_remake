@@ -2,8 +2,13 @@
 #include <GLibLogger.h>
 #include <string>
 
-/* static instance initialize*/
-glib::GLibDevice* glib::GLibDevice::m_Instance = nullptr;
+glib::GLibDevice::~GLibDevice()
+{
+    if (m_Device)
+        m_Device.Reset();
+
+    glib::Logger::DebugLog("GLibDevice resources released successfully.");
+}
 
 bool glib::GLibDevice::Initialize(const D3D_FEATURE_LEVEL& level)
 {

@@ -9,32 +9,9 @@ namespace glib
 {
     class GLibDescriptorPool
     {
-    private:
-        GLibDescriptorPool() = default;
-        ~GLibDescriptorPool() = default;
-
-        static GLibDescriptorPool* m_Instance;
     public:
-
-        static GLibDescriptorPool& GetInstance()
-        {
-            if (!m_Instance)
-            {
-                m_Instance = new GLibDescriptorPool();
-            }
-            return *m_Instance;
-        }
-
-        static void Release()
-        {
-            m_Instance->AllFree();
-            if (m_Instance)
-            {
-                delete m_Instance;
-            }
-            m_Instance = nullptr;
-            glib::Logger::DebugLog("GLibDescriptorPool released successfully.");
-        }
+        GLibDescriptorPool() = default;
+        ~GLibDescriptorPool();
 
         bool Initialize(ID3D12Device* device);
 
@@ -42,6 +19,7 @@ namespace glib
         ID3D12DescriptorHeap* Allocate(const std::string& name, const D3D12_DESCRIPTOR_HEAP_DESC& desc);
 
         void Free(const std::string& name);
+        void Free(ID3D12DescriptorHeap* descriptorHeap);
 
         void AllFree();
 

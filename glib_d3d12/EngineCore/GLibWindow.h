@@ -5,26 +5,43 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace glib
 {
-    class Window
+    class GLibWindow
     {
     public:
 
-        static void Finalize(const LPCWSTR& wndName, int width, int height);
+        GLibWindow();
+        ~GLibWindow();
 
-        static void SetName(const LPCWSTR& wndName);
-        static void SetPos(int x, int y);
-        static void SetAspect(float aspect);
-        static void SetStyle(DWORD style);
+        void Finalize(const LPCWSTR& wndName, int width, int height);
 
-        static LPCWSTR m_WindowTitle;
-        static int ClientWidth;
-        static int ClientHeight;
-        static int ClientPosX;
-        static int ClientPosY;
-        static float Aspect;
+        void SetName(const LPCWSTR& wndName);
+        void SetPos(int x, int y);
+        void SetAspect(float aspect);
+        void SetStyle(DWORD style);
+        void SetClientWidth(int width);
+        void SetClientHeight(int height);
 
-        static DWORD WindowStyle;
-        static HWND m_HWnd;
-        static RECT m_Rect;
+        LPCWSTR GetName() const { return m_WindowTitle; }
+        HWND GetHWnd() const { return m_HWnd; }
+        RECT GetRect() const { return m_Rect; }
+        int GetClientWidth() const { return m_ClientWidth; }
+        int GetClientHeight() const { return m_ClientHeight; }
+        int GetClientPosX() const { return m_ClientPosX; }
+        int GetClientPosY() const { return m_ClientPosY; }
+        float GetAspect() const { return m_Aspect; }
+        DWORD GetStyle() const { return m_WindowStyle; }
+        
+    private:
+
+        LPCWSTR m_WindowTitle;
+        int m_ClientWidth;
+        int m_ClientHeight;
+        int m_ClientPosX;
+        int m_ClientPosY;
+        float m_Aspect;
+
+        DWORD m_WindowStyle;
+        HWND m_HWnd;
+        RECT m_Rect;
     };
 }

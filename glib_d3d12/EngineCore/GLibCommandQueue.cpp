@@ -1,7 +1,12 @@
 #include "GLibCommandQueue.h"
 
-/* static instance initialize*/
-glib::GLibCommandQueue* glib::GLibCommandQueue::m_Instance = nullptr;
+glib::GLibCommandQueue::~GLibCommandQueue()
+{
+    if (m_CommandQueue)
+        m_CommandQueue.Reset();
+
+    Logger::DebugLog("Command queue resources released successfully.");
+}
 
 bool glib::GLibCommandQueue::Initialize(ID3D12Device* device, const D3D12_COMMAND_QUEUE_DESC& desc)
 {

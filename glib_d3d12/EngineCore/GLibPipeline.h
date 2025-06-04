@@ -3,8 +3,11 @@
 #include <GLibComPtr.h>
 #include <GLibLogger.h>
 
-class GLibPipeline
+namespace glib
 {
-public:
+    class GLibPipeline
+    {
+    public:
 
-};
+    };
+}

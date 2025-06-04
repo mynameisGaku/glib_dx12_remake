@@ -1,5 +1,6 @@
 #pragma once
 #include <chrono>
+#include <deque>
 
 
 namespace glib
@@ -102,24 +103,6 @@ namespace glib
         /// <returns>ヒットストップ中ならtrue</returns>
         static bool IsHitStop();
 
-        static GLibTime& GetInstance()
-        {
-            if (instance == nullptr)
-            {
-                instance = new GLibTime();
-            }
-            return (*instance);
-        }
-
-        void Destroy()
-        {
-            if (instance)
-            {
-                delete instance;
-            }
-            instance = nullptr;
-        }
-
         //==================================================
         // ▼変換
 
@@ -149,11 +132,6 @@ namespace glib
 
     private:
 
-        GLibTime() = default;
-        ~GLibTime() = default;
-
-        static GLibTime* instance;
-
         static void initialize();
         static bool m_Initialized;
 
@@ -170,5 +148,6 @@ namespace glib
         static int m_FrameCount;
         static int m_HitStop;
         static bool m_InFixedTimeStep;
+        static std::deque<float> deltaHistory;
     };
 }

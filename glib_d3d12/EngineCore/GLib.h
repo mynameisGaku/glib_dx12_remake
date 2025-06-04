@@ -47,4 +47,6 @@ namespace glib
     void SetWindowName(const LPCWSTR& wndName);
     // ウィンドウのサイズを設定する
     void SetWindowSize(int width, int height);
+
+    GLibWindow* GetWindow();
 }

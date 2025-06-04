@@ -1,7 +1,12 @@
 #include "GLibDescriptorPool.h"
 
-/* static members initialize */
-glib::GLibDescriptorPool* glib::GLibDescriptorPool::m_Instance = nullptr;
+glib::GLibDescriptorPool::~GLibDescriptorPool()
+{
+    AllFree();
+    m_pDevice = nullptr;
+    m_DescriptorHeaps.clear();
+    Logger::DebugLog("GLibDescriptorPool resources released successfully.");
+}
 
 bool glib::GLibDescriptorPool::Initialize(ID3D12Device* device)
 {
@@ -57,6 +62,21 @@ void glib::GLibDescriptorPool::Free(const std::string& name)
     {
         Logger::ErrorLog("Descriptor heap with name '" + name + "' not found.");
     }
+}
+
+void glib::GLibDescriptorPool::Free(ID3D12DescriptorHeap* descriptorHeap)
+{
+    if (!descriptorHeap) return;
+    for (auto it = m_DescriptorHeaps.begin(); it != m_DescriptorHeaps.end(); ++it)
+    {
+        if (it->second.Get() == descriptorHeap)
+        {
+            m_DescriptorHeaps.erase(it);
+            Logger::DebugLog("Descriptor heap freed successfully.");
+            return;
+        }
+    }
+    Logger::ErrorLog("Descriptor heap not found in pool.");
 }
 
 void glib::GLibDescriptorPool::AllFree()

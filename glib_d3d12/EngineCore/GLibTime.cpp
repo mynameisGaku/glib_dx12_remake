@@ -2,8 +2,6 @@
 #include <algorithm>
 #include <deque>
 
-glib::GLibTime* glib::GLibTime::instance = nullptr;
-
 bool glib::GLibTime::m_Initialized = false;
 std::chrono::high_resolution_clock::time_point glib::GLibTime::m_StartTime;
 std::chrono::high_resolution_clock::time_point glib::GLibTime::m_LastTime;
@@ -19,7 +17,7 @@ int glib::GLibTime::m_FrameCount = 0;
 int glib::GLibTime::m_HitStop = 0;
 bool glib::GLibTime::m_InFixedTimeStep = false;
 
-static std::deque<float> deltaHistory;
+std::deque<float> glib::GLibTime::deltaHistory;
 
 void glib::GLibTime::initialize()
 {

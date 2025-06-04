@@ -1,7 +1,12 @@
 #include "GLibCommandAllocator.h"
 
-/* static instance initialize*/
-glib::GLibCommandAllocator* glib::GLibCommandAllocator::m_Instance = nullptr;
+glib::GLibCommandAllocator::~GLibCommandAllocator()
+{
+    if (m_CommandAllocator)
+        m_CommandAllocator.Reset();
+
+    Logger::DebugLog("Command allocator resources released successfully.");
+}
 
 bool glib::GLibCommandAllocator::Initialize(ID3D12Device* device, const D3D12_COMMAND_LIST_TYPE& type)
 {

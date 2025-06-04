@@ -9,7 +9,6 @@
 #include <GLib.h>
 #include <GLibMessage.h>
 #include <GLibTime.h>
-#include <ImGUI/imgui.h>
 
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {

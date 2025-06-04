@@ -7,31 +7,9 @@ namespace glib
 {
     class GLibCommandQueue
     {
-    private:
-        GLibCommandQueue() {}
-        ~GLibCommandQueue() {}
-
-        static GLibCommandQueue* m_Instance;
     public:
-        static GLibCommandQueue& GetInstance()
-        {
-            if (!m_Instance)
-            {
-                m_Instance = new GLibCommandQueue();
-            }
-            return *m_Instance;
-        }
-
-        static void Release()
-        {
-            if (m_Instance)
-            {
-                delete m_Instance;
-            }
-            m_Instance = nullptr;
-
-            glib::Logger::DebugLog("GLibCommandQueue released successfully.");
-        }
+        GLibCommandQueue() {}
+        ~GLibCommandQueue();
 
         bool Initialize(ID3D12Device* device, const D3D12_COMMAND_QUEUE_DESC& desc);
 

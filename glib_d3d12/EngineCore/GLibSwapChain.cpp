@@ -9,8 +9,46 @@
 #include <GLibDevice.h>
 #include <GLib.h>
 
-bool glib::GLibSwapChain::Initialize(ID3D12Device* device, UINT buffIdx)
+glib::GLibSwapChain::~GLibSwapChain()
 {
+    for (auto& buffer : m_BackBuffers)
+    {
+        if (buffer)
+        {
+            buffer.Reset();
+        }
+    }
+    m_BackBuffers.clear();
+    
+    if (m_SwapChain)
+    {
+        m_SwapChain.Reset();
+    }
+    
+    m_BbvHeap.Release();
+    glib::Logger::DebugLog("Swap chain resources released successfully.");
+
+    m_pDevice = nullptr;
+    m_pCommandQueue = nullptr;
+    m_pCommandAllocator = nullptr;
+    m_pDescriptorPool = nullptr;
+
+    glib::Logger::DebugLog("GLibSwapChain destroyed successfully.");
+}
+
+bool glib::GLibSwapChain::Initialize(GLibDevice* device, GLibCommandQueue* queue, GLibCommandAllocator* allocator, GLibDescriptorPool* pool, UINT buffIdx)
+{
+
+    m_pDevice                   = device;
+    m_pCommandQueue             = queue;
+    m_pCommandAllocator         = allocator;
+    m_pDescriptorPool           = pool;
+
+
+
+
+
+
     // Swapchain作る
     {
         IDXGIFactory4* factory = nullptr;
@@ -24,8 +62,8 @@ bool glib::GLibSwapChain::Initialize(ID3D12Device* device, UINT buffIdx)
 
         DXGI_SWAP_CHAIN_DESC1 desc{};
         desc.BufferCount = buffIdx; // バックバッファの数
-        desc.Width = glib::Window::ClientWidth; // ウィンドウの幅
-        desc.Height = glib::Window::ClientHeight; // ウィンドウの高さ
+        desc.Width = glib::GetWindow()->GetClientWidth(); // ウィンドウの幅
+        desc.Height = glib::GetWindow()->GetClientHeight(); // ウィンドウの高さ
         desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // バックバッファのフォーマット
         desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // レンダーターゲットとして使用
         desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // スワップ効果
@@ -34,8 +72,8 @@ bool glib::GLibSwapChain::Initialize(ID3D12Device* device, UINT buffIdx)
 
         IDXGISwapChain1* swapChain = nullptr;
         m_Hr = factory->CreateSwapChainForHwnd(
-            glib::GLibCommandQueue::GetInstance().Get(),
-            glib::Window::m_HWnd,
+            m_pCommandQueue->Get(),
+            glib::GetWindow()->GetHWnd(),
             &desc,
             nullptr,
             nullptr,
@@ -70,7 +108,7 @@ bool glib::GLibSwapChain::Initialize(ID3D12Device* device, UINT buffIdx)
         desc.NumDescriptors = buffIdx; // バックバッファの数
         desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV; // レンダーターゲットビュー用のヒープ
         desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE; // シェーダーからアクセスしない
-        if (!m_BbvHeap.Initialize(glib::GLibDescriptorPool::GetInstance().Allocate("SwapChainRTVHeap", desc)))
+        if (!m_BbvHeap.Initialize(m_pDescriptorPool, m_pDescriptorPool->Allocate("SwapChainRTVHeap", desc)))
         {
             glib::Logger::FormatErrorLog("Failed to create RTV descriptor heap. HRESULT: 0x{%X}", m_Hr);
             return false;
@@ -81,7 +119,7 @@ bool glib::GLibSwapChain::Initialize(ID3D12Device* device, UINT buffIdx)
     // バックバッファビューをディスクリプタヒープに作る
     {
         D3D12_CPU_DESCRIPTOR_HANDLE hBbvHeap = m_BbvHeap.Get()->GetCPUDescriptorHandleForHeapStart();
-        m_BbvHeapSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+        m_BbvHeapSize = m_pDevice->Get()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
         for (UINT i = 0; i < buffIdx; ++i)
         {
@@ -93,7 +131,7 @@ bool glib::GLibSwapChain::Initialize(ID3D12Device* device, UINT buffIdx)
                 return false;
             }
             hBbvHeap.ptr += i * m_BbvHeapSize;
-            device->CreateRenderTargetView(m_BackBuffers[i].Get(), nullptr, hBbvHeap);
+            m_pDevice->Get()->CreateRenderTargetView(m_BackBuffers[i].Get(), nullptr, hBbvHeap);
             glib::Logger::FormatDebugLog("Render target view for buffer {%d} created successfully.", i);
         }
     }
@@ -107,7 +145,7 @@ void glib::GLibSwapChain::DrawBegin(glib::GLibGraphicsCommandList* cmdList)
 {
     // バックバッファをクリアする
     {
-        cmdList->Get()->Reset(glib::GLibCommandAllocator::GetInstance().Get(), nullptr);
+        cmdList->Get()->Reset(m_pCommandAllocator->Get(), nullptr);
 
         m_BackBufIdx = m_SwapChain->GetCurrentBackBufferIndex();
 
@@ -160,7 +198,7 @@ void glib::GLibSwapChain::DrawEnd(glib::GLibGraphicsCommandList* cmdList)
 
     // コマンドリストを実行
     ID3D12CommandList* commandLists[] = { cmdList->Get() };
-    glib::GLibCommandQueue::GetInstance().Get()->ExecuteCommandLists(_countof(commandLists), commandLists);
+    m_pCommandQueue->Get()->ExecuteCommandLists(_countof(commandLists), commandLists);
 
     // 描画完了を待つ
     glib::WaitDrawDone();
@@ -177,7 +215,7 @@ void glib::GLibSwapChain::DrawEnd(glib::GLibGraphicsCommandList* cmdList)
     glib::Logger::DebugLog("Swap chain presented successfully.");
 
     // コマンドアロケータを待つ
-    m_Hr = glib::GLibCommandAllocator::GetInstance().Get()->Reset();
+    m_Hr = m_pCommandAllocator->Get()->Reset();
     if (FAILED(m_Hr))
     {
         glib::Logger::FormatErrorLog("Failed to reset command allocator. HRESULT: 0x{&X}", m_Hr);

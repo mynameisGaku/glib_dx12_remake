@@ -6,17 +6,12 @@
 #include <GLibGraphicsCommandList.h>
 #include <GLibFence.h>
 #include <GLibStringUtil.h>
-#include <GLibDescriptorHeap.h>
 #include <GLibDescriptorPool.h>
 #include <GLibSwapChain.h>
 #include <GLibTime.h>
 #include <GLibPipeline.h>
 #include <GLibMemory.h>
-
-/* imgui */
-#include <ImGUI/imgui.h>
-#include <ImGUI/imgui_impl_win32.h>
-#include <ImGUI/imgui_impl_dx12.h>
+#include <GLibWindow.h>
 
 /* pragma link */
 #pragma comment(lib, "d3d12.lib")
@@ -26,25 +21,47 @@ namespace glib
 {
     const int SHADER_MAX = 10;
     const int BACKBUFF_MAX = 2;
-    GLibDescriptorPool*         pDescriptorPool;
-    GLibPipeline                pPipeline[SHADER_MAX];
-    GLibGraphicsCommandList     GraphicsCommandList[SHADER_MAX];
-    glib::GLibSwapChain         SwapChain;
+    glib::GLibDescriptorPool*           pDescriptorPool;
+    glib::GLibPipeline*                 pPipeline[SHADER_MAX];
+    glib::GLibGraphicsCommandList*      pGraphicsCommandList[SHADER_MAX];
+    glib::GLibDevice*                   pDevice;
+    glib::GLibSwapChain*                pSwapChain;
+    glib::GLibCommandAllocator*         pCommandAllocator;
+    glib::GLibCommandQueue*             pCommandQueue;
+    glib::GLibFence*                    pFence;
+    glib::GLibTime*                     pTime;
+    glib::GLibWindow*                   pWindow;
 }
 
 bool glib::Init()
 {
-    // Initialize the window
-    glib::Window::Finalize(glib::Window::m_WindowTitle, glib::Window::ClientWidth, glib::Window::ClientHeight);
+    {
+        pWindow                             = new GLibWindow();
+        pDescriptorPool                     = new GLibDescriptorPool;
+        for (int i = 0; i < SHADER_MAX; ++i)
+        {
+            pPipeline[i]            = new GLibPipeline;
+            pGraphicsCommandList[i] = new GLibGraphicsCommandList;
+        }
+        pDevice                             = new GLibDevice;
+        pSwapChain                          = new GLibSwapChain;
+        pCommandAllocator                   = new GLibCommandAllocator;
+        pCommandQueue                       = new GLibCommandQueue;
+        pFence                              = new GLibFence;
+        pTime                               = new GLibTime;
+    }
 
-    if (!glib::Window::m_HWnd)
+    // Initialize the window
+    pWindow->Finalize(pWindow->GetName(), pWindow->GetClientWidth(), pWindow->GetClientHeight());
+
+    if (!pWindow->GetHWnd())
     {
         glib::Logger::ErrorLog("Failed to create window.");
         return false;
     }
     else
     {
-        glib::Logger::DebugLog("Window created successfully: " + glib::StringUtil::WStringToString(glib::Window::m_WindowTitle));
+        glib::Logger::DebugLog("GLibWindow created successfully: " + glib::StringUtil::WStringToString(pWindow->GetName()));
     }
 
     // Enable the debug layer
@@ -72,30 +89,30 @@ bool glib::Init()
     */
 
     // Initialize the device
-    glib::GLibDevice::GetInstance().Initialize(D3D_FEATURE_LEVEL_12_0);
+    pDevice->Initialize(D3D_FEATURE_LEVEL_12_0);
 
 
     // Initialize the command allocator
-    glib::GLibCommandAllocator::GetInstance().Initialize(glib::GLibDevice::GetInstance().Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
+    pCommandAllocator->Initialize(pDevice->Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
 
 
     // Initialize the command list
-    GraphicsCommandList[0].Initialize(glib::GLibDevice::GetInstance().Get(), glib::GLibCommandAllocator::GetInstance().Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
+    pGraphicsCommandList[0]->Initialize(pDevice->Get(), pCommandAllocator->Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
 
 
     // Initialize the command queue
     D3D12_COMMAND_QUEUE_DESC desc = {};
     desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
     desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-    glib::GLibCommandQueue::GetInstance().Initialize(glib::GLibDevice::GetInstance().Get(), desc);
+    pCommandQueue->Initialize(pDevice->Get(), desc);
 
 
     // Initialize the fence
-    glib::GLibFence::GetInstance().Initialize(glib::GLibDevice::GetInstance().Get(), D3D12_FENCE_FLAG_NONE);
+    pFence->Initialize(pDevice, pCommandQueue, D3D12_FENCE_FLAG_NONE);
 
 
     // Initialize the descriptor pool
-    if (!glib::GLibDescriptorPool::GetInstance().Initialize(glib::GLibDevice::GetInstance().Get()))
+    if (!pDescriptorPool->Initialize(pDevice->Get()))
     {
         glib::Logger::ErrorLog("Failed to initialize descriptor pool.");
         return false;
@@ -103,47 +120,19 @@ bool glib::Init()
 
 
     // Initialize the descriptor pool
-    glib::GLibDescriptorPool::GetInstance().Initialize(glib::GLibDevice::GetInstance().Get());
+    pDescriptorPool->Initialize(pDevice->Get());
 
 
     // Initialize the swap chain
-    if (!SwapChain.Initialize(glib::GLibDevice::GetInstance().Get(), 2))
+    if (!pSwapChain->Initialize(pDevice, pCommandQueue, pCommandAllocator, pDescriptorPool, BACKBUFF_MAX))
     {
         glib::Logger::ErrorLog("Failed to initialize swap chain.");
         return false;
     }
 
     // Initialize the time management
-    glib::GLibTime::GetInstance().SetLevelLoaded();
+    pTime->SetLevelLoaded();
 
-    // imgui
-    {
-        // Setup Dear ImGui context
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO(); (void)io;
-        //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-        //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-        // Setup Dear ImGui style
-        ImGui::StyleColorsDark();
-        //ImGui::StyleColorsClassic();
-
-        D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-        srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-        srvHeapDesc.NumDescriptors = 1000; // Number of descriptors in the heap
-        srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV; // Shader Resource View heap type
-        glib::GLibDescriptorPool::GetInstance().Allocate("ImGuiSRVHeap", srvHeapDesc);
-
-        auto imguiHeap = glib::GLibDescriptorPool::GetInstance().Get("ImGuiSRVHeap");
-
-        // Setup Platform/Renderer backends
-        ImGui_ImplWin32_Init(glib::Window::m_HWnd);
-        ImGui_ImplDX12_Init(glib::GLibDevice::GetInstance().Get(), 2,
-            DXGI_FORMAT_R8G8B8A8_UNORM, imguiHeap,
-            imguiHeap->GetCPUDescriptorHandleForHeapStart(),
-            imguiHeap->GetGPUDescriptorHandleForHeapStart());
-    }
 
     glib::Logger::CriticalLog("GLib initialized successfully.");
     return true;
@@ -151,20 +140,12 @@ bool glib::Init()
 
 void glib::BeginRender()
 {
-    RECT rect;
-    GetClientRect(glib::Window::m_HWnd, &rect);
-
-    ImGui_ImplDX12_NewFrame();
-    ImGui_ImplWin32_NewFrame((float)(rect.right - rect.left) / glib::Window::ClientWidth, (float)(rect.bottom - rect.top) / (float)glib::Window::ClientHeight, (float)glib::Window::ClientWidth, (float)glib::Window::ClientHeight);
-    ImGui::NewFrame();
-    SwapChain.DrawBegin(&GraphicsCommandList[0]);
+    pSwapChain->DrawBegin(pGraphicsCommandList[0]);
 }
 
 void glib::EndRender()
 {
-    ImGui::Render();
-
-    SwapChain.DrawEnd(&GraphicsCommandList[0]);
+    pSwapChain->DrawEnd(pGraphicsCommandList[0]);
     WaitDrawDone();
 }
 
@@ -172,42 +153,51 @@ void glib::Release()
 {
     WaitDrawDone();
 
-    ImGui_ImplDX12_Shutdown();
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
-
-    glib::GLibDescriptorPool::GetInstance().Free("ImGuiSRVHeap");
-
     // D3D12 Release
     /*
-    SwapChain
-    |
-    DescriptorPool
-    |
-    Fence
-    |
-    CommandQueue
-    |
-    CommandList
+    Device
     |
     Allocator
     |
-    Device
+    CommandList
+    |
+    CommandQueue
+    |
+    Fence
+    |
+    DescriptorPool
+    |
+    SwapChain
+    |
+    Pipeline
+    |
+    Time
+    |
+    ImGui
     */
-    glib::GLibDescriptorPool::GetInstance().Release();
-    glib::GLibFence::GetInstance().Release();
-    glib::GLibCommandQueue::GetInstance().Release();
-    glib::GLibCommandAllocator::GetInstance().Release();
-    glib::GLibDevice::GetInstance().Release();
 
-    // Release the window
-    if (glib::Window::m_HWnd)
+    SafeDelete(pTime);
+    for (int i = 0; i < SHADER_MAX; ++i)
     {
-        DestroyWindow(glib::Window::m_HWnd);
-        glib::Window::m_HWnd = nullptr;
+        SafeDelete(pPipeline[i]);
     }
-
-    glib::GLibTime::GetInstance().Destroy();
+    SafeDelete(pSwapChain);
+    SafeDelete(pDescriptorPool);
+    SafeDelete(pFence);
+    SafeDelete(pCommandQueue);
+    for (int i = 0; i < SHADER_MAX; ++i)
+    {
+        SafeDelete(pGraphicsCommandList[i]);
+    }
+    SafeDelete(pCommandAllocator);
+    SafeDelete(pDevice);
+    
+    // Release the window
+    if (pWindow->GetHWnd())
+    {
+        DestroyWindow(pWindow->GetHWnd());
+        SafeDelete(pWindow);
+    }
 
     // Log release message
     glib::Logger::CriticalLog("GLib released successfully.");
@@ -215,60 +205,65 @@ void glib::Release()
 
 void glib::WaitDrawDone()
 {
-    glib::GLibFence::GetInstance().WaitDrawDone();
+    pFence->WaitDrawDone();
 }
 
 void glib::RefreshDeltaTime()
 {
-    glib::GLibTime::GetInstance().Update();
+    pTime->Update();
 }
 
 float glib::DeltaTime()
 {
-    return glib::GLibTime::GetInstance().DeltaTime();
+    return pTime->DeltaTime();
 }
 
 void glib::ShowWindow()
 {
-    glib::Window::Finalize(glib::Window::m_WindowTitle, glib::Window::ClientWidth, glib::Window::ClientHeight);
-    if (glib::Window::m_HWnd)
+    pWindow->Finalize(pWindow->GetName(), pWindow->GetClientWidth(), pWindow->GetClientHeight());
+    if (pWindow->GetHWnd())
     {
-        ::ShowWindow(glib::Window::m_HWnd, SW_SHOW);
-        UpdateWindow(glib::Window::m_HWnd);
+        ::ShowWindow(pWindow->GetHWnd(), SW_SHOW);
+        UpdateWindow(pWindow->GetHWnd());
     }
 }
 
 void glib::SetWindowPos(int x, int y)
 {
-    glib::Window::SetPos(x, y);
+    pWindow->SetPos(x, y);
 }
 
 void glib::SetWindowAspect(float aspect)
 {
-    glib::Window::SetAspect(aspect);
+    pWindow->SetAspect(aspect);
 }
 
 void glib::SetWindowStyle(const GLIB_WINDOW_STYLE& style)
 {
-    glib::Window::SetStyle(static_cast<DWORD>(style));
+    pWindow->SetStyle(static_cast<DWORD>(style));
 }
 
 void glib::SetWindowName(const LPCWSTR& wndName)
 {
-    glib::Window::SetName(wndName);
+    pWindow->SetName(wndName);
 }
 
 void glib::SetWindowSize(int width, int height)
 {
-    glib::Window::ClientWidth = width;
-    glib::Window::ClientHeight = height;
+    pWindow->SetClientWidth(width);
+    pWindow->SetClientHeight(height);
 
-    if (glib::Window::m_HWnd)
+    if (pWindow->GetHWnd())
     {
         RECT rect;
-        GetClientRect(glib::Window::m_HWnd, &rect);
+        GetClientRect(pWindow->GetHWnd(), &rect);
         int newWidth = width;
         int newHeight = height;
-        SetWindowPos(glib::Window::m_HWnd, nullptr, 0, 0, newWidth, newHeight, SWP_NOMOVE | SWP_NOZORDER);
+        SetWindowPos(pWindow->GetHWnd(), nullptr, 0, 0, newWidth, newHeight, SWP_NOMOVE | SWP_NOZORDER);
     }
+}
+
+glib::GLibWindow* glib::GetWindow()
+{
+    return pWindow;
 }

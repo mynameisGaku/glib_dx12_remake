@@ -8,6 +8,9 @@
 #include <Windows.h>
 #include <GLibDescriptorPool.h>
 #include <GLibGraphicsCommandList.h>
+#include <GLibCommandQueue.h>
+#include <GLibCommandAllocator.h>
+#include <GLibDevice.h>
 
 namespace glib
 {
@@ -15,16 +18,9 @@ namespace glib
     {
     public:
         GLibSwapChain() = default;
-        ~GLibSwapChain()
-        {
-            m_BackBuffers.clear();
-            glib::GLibDescriptorPool::GetInstance().Free("SwapChainRTVHeap");
-            glib::Logger::DebugLog("BackBuffers cleared successfully.");
-            glib::Logger::DebugLog("SwapChain released successfully.");
-            glib::Logger::DebugLog("SwapChain RTV Heap freed successfully.");
-        }
+        ~GLibSwapChain();
 
-        bool Initialize(ID3D12Device* device, UINT buffIdx);
+        bool Initialize(GLibDevice* device, GLibCommandQueue* queue, GLibCommandAllocator* allocator, GLibDescriptorPool* pool, UINT buffIdx);
 
         IDXGISwapChain4* Get() const { return m_SwapChain.Get(); }
         GLibDescriptorHeap& GetBbvHeap() { return m_BbvHeap; }
@@ -43,13 +39,15 @@ namespace glib
         void DrawEnd(glib::GLibGraphicsCommandList* cmdList);
 
     private:
-        ComPtr<IDXGISwapChain4> m_SwapChain;
-        std::vector<ComPtr<ID3D12Resource>> m_BackBuffers;
-        UINT m_BackBufIdx{};
-
-        GLibDescriptorHeap m_BbvHeap;
-        UINT m_BbvHeapSize{};
-
-        HRESULT m_Hr{};
+        std::vector<ComPtr<ID3D12Resource>>     m_BackBuffers{};
+        UINT                                    m_BackBufIdx{};
+        ComPtr<IDXGISwapChain4>                 m_SwapChain             = nullptr;
+        GLibDevice*                             m_pDevice               = nullptr;
+        GLibCommandQueue*                       m_pCommandQueue         = nullptr;
+        GLibCommandAllocator*                   m_pCommandAllocator     = nullptr;
+        GLibDescriptorPool*                     m_pDescriptorPool       = nullptr;
+        GLibDescriptorHeap                      m_BbvHeap{};
+        UINT                                    m_BbvHeapSize{};
+        HRESULT                                 m_Hr{};
     };
 }

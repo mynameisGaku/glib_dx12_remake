@@ -13,9 +13,6 @@
     <Filter Include="Vendor">
       <UniqueIdentifier>{5ddb49b1-271c-46b5-939f-51453f687852}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Vendor\ImGUI">
-      <UniqueIdentifier>{ad18e0f5-ab5a-45fd-8df1-c34ec727a302}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Game\main.cpp">
@@ -74,24 +71,6 @@
     </ClCompile>
     <ClCompile Include="EngineCore\GLibTime.cpp">
       <Filter>EngineCore</Filter>
-    </ClCompile>
-    <ClCompile Include="Vendor\ImGUI\imgui.cpp">
-      <Filter>Vendor\ImGUI</Filter>
-    </ClCompile>
-    <ClCompile Include="Vendor\ImGUI\imgui_demo.cpp">
-      <Filter>Vendor\ImGUI</Filter>
-    </ClCompile>
-    <ClCompile Include="Vendor\ImGUI\imgui_draw.cpp">
-      <Filter>Vendor\ImGUI</Filter>
-    </ClCompile>
-    <ClCompile Include="Vendor\ImGUI\imgui_impl_dx12.cpp">
-      <Filter>Vendor\ImGUI</Filter>
-    </ClCompile>
-    <ClCompile Include="Vendor\ImGUI\imgui_impl_win32.cpp">
-      <Filter>Vendor\ImGUI</Filter>
-    </ClCompile>
-    <ClCompile Include="Vendor\ImGUI\imgui_widgets.cpp">
-      <Filter>Vendor\ImGUI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -163,30 +142,6 @@
     </ClInclude>
     <ClInclude Include="EngineCore\GLibTime.h">
       <Filter>EngineCore</Filter>
-    </ClInclude>
-    <ClInclude Include="Vendor\ImGUI\imconfig.h">
-      <Filter>Vendor\ImGUI</Filter>
-    </ClInclude>
-    <ClInclude Include="Vendor\ImGUI\imgui.h">
-      <Filter>Vendor\ImGUI</Filter>
-    </ClInclude>
-    <ClInclude Include="Vendor\ImGUI\imgui_impl_dx12.h">
-      <Filter>Vendor\ImGUI</Filter>
-    </ClInclude>
-    <ClInclude Include="Vendor\ImGUI\imgui_impl_win32.h">
-      <Filter>Vendor\ImGUI</Filter>
-    </ClInclude>
-    <ClInclude Include="Vendor\ImGUI\imgui_internal.h">
-      <Filter>Vendor\ImGUI</Filter>
-    </ClInclude>
-    <ClInclude Include="Vendor\ImGUI\imstb_rectpack.h">
-      <Filter>Vendor\ImGUI</Filter>
-    </ClInclude>
-    <ClInclude Include="Vendor\ImGUI\imstb_textedit.h">
-      <Filter>Vendor\ImGUI</Filter>
-    </ClInclude>
-    <ClInclude Include="Vendor\ImGUI\imstb_truetype.h">
-      <Filter>Vendor\ImGUI</Filter>
     </ClInclude>
     <ClInclude Include="EngineCore\GLibMemory.h">
       <Filter>EngineCore</Filter>

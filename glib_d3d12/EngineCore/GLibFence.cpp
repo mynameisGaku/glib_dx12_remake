@@ -1,12 +1,27 @@
 #include "GLibFence.h"
 #include <GLibCommandQueue.h>
 
-/* static instance initialize*/
-glib::GLibFence* glib::GLibFence::m_Instance = nullptr;
 
-bool glib::GLibFence::Initialize(ID3D12Device* device, const D3D12_FENCE_FLAGS& flags)
+glib::GLibFence::~GLibFence()
 {
-    m_Hr = device->CreateFence(0, flags, IID_PPV_ARGS(&m_Fence));
+    if (m_Fence)
+        m_Fence.Reset();
+
+    if (m_FenceEvent)
+    {
+        CloseHandle(m_FenceEvent);
+        m_FenceEvent = nullptr;
+    }
+
+    Logger::DebugLog("Fence resources released successfully.");
+}
+
+bool glib::GLibFence::Initialize(GLibDevice* device, GLibCommandQueue* queue, const D3D12_FENCE_FLAGS& flags)
+{
+    m_pDevice = device;
+    m_pCommandQueue = queue;
+
+    m_Hr = m_pDevice->Get()->CreateFence(0, flags, IID_PPV_ARGS(&m_Fence));
     if (FAILED(m_Hr))
     {
         Logger::FormatErrorLog("Failed to create fence");
@@ -27,7 +42,7 @@ bool glib::GLibFence::Initialize(ID3D12Device* device, const D3D12_FENCE_FLAGS& 
 void glib::GLibFence::WaitDrawDone()
 {
     UINT64 fvalue = m_FenceValue;
-    glib::GLibCommandQueue::GetInstance().Get()->Signal(m_Fence.Get(), fvalue);
+    m_pCommandQueue->Get()->Signal(m_Fence.Get(), fvalue);
     m_FenceValue++;
 
     if (m_Fence->GetCompletedValue() < fvalue)

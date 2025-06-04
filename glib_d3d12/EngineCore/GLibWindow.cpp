@@ -1,15 +1,5 @@
 #include "GLibWindow.h"
 
-/* static memebers init*/
-LPCWSTR glib::Window::m_WindowTitle = L"GLib_D3D12";
-int glib::Window::ClientWidth = 1280;
-int glib::Window::ClientHeight = 720;
-int glib::Window::ClientPosX = (GetSystemMetrics(SM_CXSCREEN) - ClientWidth) / 2;
-int glib::Window::ClientPosY = (GetSystemMetrics(SM_CYSCREEN) - ClientHeight) / 2;
-float glib::Window::Aspect = static_cast<float>(ClientWidth) / static_cast<float>(ClientHeight);
-DWORD glib::Window::WindowStyle = WS_OVERLAPPEDWINDOW;
-HWND glib::Window::m_HWnd = nullptr;
-RECT glib::Window::m_Rect{};
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -26,11 +16,28 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     }
 }
 
-void glib::Window::Finalize(const LPCWSTR& wndName, int width, int height)
+glib::GLibWindow::GLibWindow()
+{
+    m_WindowTitle = L"GLib_D3D12";
+    m_ClientWidth = 1280;
+    m_ClientHeight = 720;
+    m_ClientPosX = (GetSystemMetrics(SM_CXSCREEN) - m_ClientWidth) / 2;
+    m_ClientPosY = (GetSystemMetrics(SM_CYSCREEN) - m_ClientHeight) / 2;
+    m_Aspect = static_cast<float>(m_ClientWidth) / static_cast<float>(m_ClientHeight);
+    m_WindowStyle = WS_OVERLAPPEDWINDOW;
+    m_HWnd = nullptr;
+    m_Rect = {};
+}
+
+glib::GLibWindow::~GLibWindow()
+{
+}
+
+void glib::GLibWindow::Finalize(const LPCWSTR& wndName, int width, int height)
 {
     m_WindowTitle = wndName;
-    ClientWidth = width;
-    ClientHeight = height;
+    m_ClientWidth = width;
+    m_ClientHeight = height;
 
     // ウィンドウクラスの登録
     {
@@ -40,17 +47,17 @@ void glib::Window::Finalize(const LPCWSTR& wndName, int width, int height)
         wc.lpfnWndProc = WndProc;
         wc.hInstance = GetModuleHandle(0);
         wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-        wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+        wc.hbrBackground = (HBRUSH)GetStockObject(DKGRAY_BRUSH);
         wc.lpszClassName = L"EngineWindowClass";
         RegisterClassEx(&wc);
     }
 
     // 表示位置、ウィンドウの大きさ調整
     {
-        m_Rect = { 0, 0, ClientWidth, ClientHeight };
-        AdjustWindowRect(&m_Rect, WindowStyle, FALSE);
-        int windowPosX = ClientPosX + m_Rect.left;
-        int windowPosY = ClientPosY + m_Rect.top;
+        m_Rect = { 0, 0, m_ClientWidth, m_ClientHeight };
+        AdjustWindowRect(&m_Rect, m_WindowStyle, FALSE);
+        int windowPosX = m_ClientPosX + m_Rect.left;
+        int windowPosY = m_ClientPosY + m_Rect.top;
         int windowWidth = m_Rect.right - m_Rect.left;
         int windowHeight = m_Rect.bottom - m_Rect.top;
         // ウィンドウを作る
@@ -58,7 +65,7 @@ void glib::Window::Finalize(const LPCWSTR& wndName, int width, int height)
             0,
             L"EngineWindowClass",
             m_WindowTitle,
-            WindowStyle,
+            m_WindowStyle,
             windowPosX, windowPosY, windowWidth, windowHeight,
             nullptr, nullptr, GetModuleHandle(nullptr), nullptr
         );
@@ -73,7 +80,7 @@ void glib::Window::Finalize(const LPCWSTR& wndName, int width, int height)
     ShowWindow(m_HWnd, SW_SHOW);
 }
 
-void glib::Window::SetName(const LPCWSTR& wndName)
+void glib::GLibWindow::SetName(const LPCWSTR& wndName)
 {
     m_WindowTitle = wndName;
     if (m_HWnd)
@@ -82,37 +89,61 @@ void glib::Window::SetName(const LPCWSTR& wndName)
     }
 }
 
-void glib::Window::SetPos(int x, int y)
+void glib::GLibWindow::SetPos(int x, int y)
 {
-    ClientPosX = x;
-    ClientPosY = y;
+    m_ClientPosX = x;
+    m_ClientPosY = y;
 
     if (m_HWnd)
     {
-        SetWindowPos(m_HWnd, nullptr, ClientPosX, ClientPosY, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+        SetWindowPos(m_HWnd, nullptr, m_ClientPosX, m_ClientPosY, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
     }
 }
 
-void glib::Window::SetAspect(float aspect)
+void glib::GLibWindow::SetAspect(float aspect)
 {
-    Aspect = aspect;
+    m_Aspect = aspect;
 
     if (m_HWnd)
     {
         RECT rect;
         GetClientRect(m_HWnd, &rect);
-        int newWidth = static_cast<int>(rect.bottom * Aspect);
+        int newWidth = static_cast<int>(rect.bottom * m_Aspect);
         SetWindowPos(m_HWnd, nullptr, 0, 0, newWidth, rect.bottom, SWP_NOMOVE | SWP_NOZORDER);
     }
 }
 
-void glib::Window::SetStyle(DWORD style)
+void glib::GLibWindow::SetStyle(DWORD style)
 {
-    WindowStyle = style;
+    m_WindowStyle = style;
 
     if (m_HWnd)
     {
-        SetWindowLong(m_HWnd, GWL_STYLE, WindowStyle);
-        SetWindowPos(m_HWnd, nullptr, 0, 0, ClientWidth, ClientHeight, SWP_NOMOVE | SWP_NOZORDER);
+        SetWindowLong(m_HWnd, GWL_STYLE, m_WindowStyle);
+        SetWindowPos(m_HWnd, nullptr, 0, 0, m_ClientWidth, m_ClientHeight, SWP_NOMOVE | SWP_NOZORDER);
+    }
+}
+
+void glib::GLibWindow::SetClientWidth(int width)
+{
+    m_ClientWidth = width;
+    if (m_HWnd)
+    {
+        RECT rect;
+        GetClientRect(m_HWnd, &rect);
+        int newHeight = static_cast<int>(rect.right / m_Aspect);
+        SetWindowPos(m_HWnd, nullptr, 0, 0, m_ClientWidth, newHeight, SWP_NOMOVE | SWP_NOZORDER);
+    }
+}
+
+void glib::GLibWindow::SetClientHeight(int height)
+{
+    m_ClientHeight = height;
+    if (m_HWnd)
+    {
+        RECT rect;
+        GetClientRect(m_HWnd, &rect);
+        int newWidth = static_cast<int>(rect.bottom * m_Aspect);
+        SetWindowPos(m_HWnd, nullptr, 0, 0, newWidth, m_ClientHeight, SWP_NOMOVE | SWP_NOZORDER);
     }
 }

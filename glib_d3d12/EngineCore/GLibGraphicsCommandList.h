@@ -9,7 +9,7 @@ namespace glib
     {
     public:
         GLibGraphicsCommandList() {}
-        ~GLibGraphicsCommandList() {}
+        ~GLibGraphicsCommandList();
 
         void Initialize(ID3D12Device* device, ID3D12CommandAllocator* commandAllocator, const D3D12_COMMAND_LIST_TYPE& type);
 

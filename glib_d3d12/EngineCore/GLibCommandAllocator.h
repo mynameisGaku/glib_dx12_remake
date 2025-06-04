@@ -7,31 +7,9 @@ namespace glib
 {
     class GLibCommandAllocator
     {
-    private:
-        GLibCommandAllocator() {}
-        ~GLibCommandAllocator() {}
-
-        static GLibCommandAllocator* m_Instance;
     public:
-        static GLibCommandAllocator& GetInstance()
-        {
-            if (!m_Instance)
-            {
-                m_Instance = new GLibCommandAllocator();
-            }
-            return *m_Instance;
-        }
-
-        static void Release()
-        {
-            if (m_Instance)
-            {
-                delete m_Instance;
-            }
-            m_Instance = nullptr;
-
-            glib::Logger::DebugLog("GLibCommandAllocator released successfully.");
-        }
+        GLibCommandAllocator() {}
+        ~GLibCommandAllocator();
 
         bool Initialize(ID3D12Device* device, const D3D12_COMMAND_LIST_TYPE& type);
 
