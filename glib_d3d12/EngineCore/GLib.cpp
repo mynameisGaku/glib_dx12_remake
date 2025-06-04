@@ -161,6 +161,9 @@ bool glib::Init()
 
 
     // Initialize the pipelines
+    // ここでやっている複数の設定(DESC)は全て、一つのパイプラインの設定をしています。
+    // 最終的にまとめてようやく、一つのパイプラインが出来上がります。
+    // 細かな設定は、パイプラインの種類によって異なるので、いろいろ調べつつ、自分が求めているパイプラインにカスタムしよう。
     glib::GLibBinaryLoader vs("Resources/Shaders/SpriteVS.cso");
     glib::GLibBinaryLoader ps("Resources/Shaders/SpritePS.cso");
     UINT slot0 = 0;
