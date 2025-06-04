@@ -7,11 +7,14 @@
     <Filter Include="Game">
       <UniqueIdentifier>{828e8192-b35d-4c06-b32f-d34386f6d686}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders">
-      <UniqueIdentifier>{2dd83876-60a2-4672-8243-1cca01648a6f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Vendor">
+    <Filter Include="EngineCore\Vendor">
       <UniqueIdentifier>{5ddb49b1-271c-46b5-939f-51453f687852}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{ed626107-295c-4628-9d14-511b4307837b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources\Shaders">
+      <UniqueIdentifier>{2dd83876-60a2-4672-8243-1cca01648a6f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -146,5 +149,16 @@
     <ClInclude Include="EngineCore\GLibMemory.h">
       <Filter>EngineCore</Filter>
     </ClInclude>
+    <ClInclude Include="EngineCore\GLibBinaryLoader.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Resources\Shaders\SpritePS.hlsl">
+      <Filter>Resources\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\SpriteVS.hlsl">
+      <Filter>Resources\Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

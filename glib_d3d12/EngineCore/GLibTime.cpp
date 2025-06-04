@@ -13,6 +13,16 @@ void glib::GLibTime::initialize()
     m_HitStop = 0;
 }
 
+glib::GLibTime::GLibTime()
+{
+    m_Initialized = false;
+    m_TimeScale = 1.0f;
+    m_FixedDeltaTime = 1.0f / m_MaxFps;
+    m_MaximumDeltaTime = 0.25f;
+    m_InFixedTimeStep = false;
+    initialize();
+}
+
 void glib::GLibTime::Update()
 {
     if (!m_Initialized)
@@ -109,4 +119,10 @@ int glib::GLibTime::HitStop()
 bool glib::GLibTime::IsHitStop()
 {
     return (m_HitStop > 0);
+}
+
+void glib::GLibTime::SetMaxFPS(int fps)
+{
+    m_MaxFps = fps;
+    m_FixedDeltaTime = 1.0f / m_MaxFps;
 }

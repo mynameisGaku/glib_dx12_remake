@@ -5,14 +5,28 @@
 
 namespace glib
 {
+    // 描画パイプラインの種類
+    typedef enum
+    {
+        GLIB_PIPELINE_TYPE_MAIN = 0,                            // 通常の描画を行うパイプライン
+        GLIB_PIPELINE_TYPE_SHADOW,                              // 3Dプリミティブの影描画を行うパイプライン
+        GLIB_PIPELINE_TYPE_MAIN_NO_SHADOW,                      // 通常の描画を行うが、影の影響を受けないパイプライン
+        GLIB_PIPELINE_TYPE_POSTPROCESS,                         // ポストプロセス(画面効果)の描画を行うパイプライン
+        GLIB_PIPELINE_TYPE_MAIN_NO_POSTPROCESS_AND_SHADOW,      // 通常の描画を行うが、ポストプロセスと影の影響を受けないパイプライン
+        GLIB_PIPELINE_TYPE_UI,                                  // UIの描画を行うパイプライン
+        GLIB_PIPELINE_TYPE_COMPUTE,                             // コンピュートシェーダーを使用した計算を行うパイプライン
+        GLIB_PIPELINE_TYPE_RAYTRACING,                          // レイトレーシングの描画を行うパイプライン
+        GLIB_PIPELINE_TYPE_MAX                                  // パイプラインの最大値
+    }GLIB_PIPELINE_TYPE;
+
     // GLibを初期化する
     bool Init();
 
     // 描画開始
-    void BeginRender();
+    void BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType = GLIB_PIPELINE_TYPE_MAIN);
 
     // 描画終了
-    void EndRender();
+    void EndRender(const GLIB_PIPELINE_TYPE& usePipelineType = GLIB_PIPELINE_TYPE_MAIN);
 
     // GLibを解放する
     void Release();

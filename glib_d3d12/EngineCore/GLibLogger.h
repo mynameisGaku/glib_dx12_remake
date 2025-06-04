@@ -24,23 +24,23 @@ namespace glib
             {
             case LogLevel::Debug:
                 // Debugレベルのログは通常、開発中にのみ使用されるため、特に目立たせない
-                logMessage = "[DEBUG] ";
+                logMessage = "[DEBUG] [GLIB] ";
                 break;
             case LogLevel::Info:
                 // Infoレベルのログは通常、アプリケーションの状態や進行状況を示すために使用される
-                logMessage = "[INFO] ";
+                logMessage = "[INFO] [GLIB] ";
                 break;
             case LogLevel::Warning:
                 // Warningレベルのログは、潜在的な問題を示すために使用される
-                logMessage = "[WARNING] ";
+                logMessage = "[WARNING] [GLIB] ";
                 break;
             case LogLevel::Error:
                 // Errorレベルのログは、アプリケーションの動作に影響を与える問題を示すために使用される
-                logMessage = "[ERROR] ";
+                logMessage = "[ERROR] [GLIB] ";
                 break;
             case LogLevel::Critical:
                 // Criticalレベルのログは、アプリケーションのクラッシュや重大な問題を示すために使用される
-                logMessage = "[CRITICAL] ";
+                logMessage = "[CRITICAL] [GLIB] ";
                 break;
             }
 

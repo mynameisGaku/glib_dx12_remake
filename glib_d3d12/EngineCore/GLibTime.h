@@ -14,6 +14,8 @@ namespace glib
     {
     public:
 
+        GLibTime();
+
         /// <summary>
         /// 時間加算方法
         /// </summary>
@@ -103,6 +105,11 @@ namespace glib
         /// <returns>ヒットストップ中ならtrue</returns>
         bool IsHitStop();
 
+        /// <summary>
+        /// 最大FPSを設定する
+        /// </summary>
+        void SetMaxFPS(int fps);
+
         //==================================================
         // ▼変換
 
@@ -147,6 +154,7 @@ namespace glib
         float m_MaximumDeltaTime;
         int m_FrameCount;
         int m_HitStop;
+        int m_MaxFps;
         bool m_InFixedTimeStep;
         std::deque<float> deltaHistory;
     };
