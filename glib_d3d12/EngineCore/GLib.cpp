@@ -12,8 +12,8 @@
 #include <GLibPipeline.h>
 #include <GLibMemory.h>
 #include <GLibWindow.h>
-#include <GLibPipeline.h>
 #include <GLibBinaryLoader.h>
+#include <GLibVertexBuffer.h>
 
 /* pragma link */
 #pragma comment(lib, "d3d12.lib")
@@ -21,8 +21,12 @@
 
 namespace glib
 {
+
+    /* constants */
     const int SHADER_MAX = 10;
     const int BACKBUFF_MAX = 2;
+
+    /* device interfaces */
     glib::GLibDescriptorPool*           pDescriptorPool;
     glib::GLibPipeline*                 pPipelines[SHADER_MAX];
     glib::GLibPipeline*                 pCurrentPipeline;
@@ -34,6 +38,9 @@ namespace glib
     glib::GLibFence*                    pFence;
     glib::GLibTime*                     pTime;
     glib::GLibWindow*                   pWindow;
+
+    /* resources */
+    glib::GLibVertexBuffer*             pVertexBuffer;
 
 
     D3D12_VIEWPORT                      ViewPort;
@@ -52,6 +59,7 @@ bool glib::Init()
             pPipelines[i]            = new GLibPipeline;
             pGraphicsCommandLists[i] = new GLibGraphicsCommandList;
         }
+        pVertexBuffer                       = new glib::GLibVertexBuffer;
         pDevice                             = new GLibDevice;
         pSwapChain                          = new GLibSwapChain;
         pCommandAllocator                   = new GLibCommandAllocator;
@@ -247,6 +255,25 @@ bool glib::Init()
     pPipelines[0]->Initialize(pDevice->Get(), psoDesc);
 
 
+    // Initialize the vertex buffer
+    float vertices[] = {
+        -0.5f, -0.3f, 0.0f,
+        0.3f, 0.5f, 0.0f,
+        -0.5f, 0.5f, 0.0f,
+
+        -0.3f, -0.5f, 0.0f,
+        0.5f, -0.5f, 0.0f,
+        0.5f, 0.3f, 0.0f
+    };
+
+    UINT vertexCount = _countof(vertices) / 3;
+    UINT stride = sizeof(float) * 3;
+    size_t size = sizeof(vertices);
+
+    pVertexBuffer->Initialize(pDevice->Get(), vertices, size, vertexCount, stride);
+
+
+
 
     // Initialize the time management
     pTime->SetLevelLoaded();
@@ -260,13 +287,27 @@ bool glib::Init()
 
 void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
 {
+    // 描画受付開始 (DrawBegin内でRenderTargetのクリア・セット、バリアの設定を行っています。)
     pSwapChain->DrawBegin(pGraphicsCommandLists[usePipelineType]);
 
+    // 以下、パイプラインの設定と、描画する頂点のセットを行います。
     pCurrentPipeline = pPipelines[usePipelineType];
     pGraphicsCommandLists[usePipelineType]->Get()->SetPipelineState(pCurrentPipeline->Get());
     pGraphicsCommandLists[usePipelineType]->Get()->RSSetViewports(1, &ViewPort);
     pGraphicsCommandLists[usePipelineType]->Get()->RSSetScissorRects(1, &ScissorRect);
     pGraphicsCommandLists[usePipelineType]->Get()->SetGraphicsRootSignature(pCurrentPipeline->GetRootSignature());
+
+    // 頂点セット
+    D3D12_VERTEX_BUFFER_VIEW vertexBufferView[] =
+    {
+        pVertexBuffer->GetVertexBufferView()
+    };
+    UINT vertexBufferCount = _countof(vertexBufferView);
+    pGraphicsCommandLists[usePipelineType]->Get()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    pGraphicsCommandLists[usePipelineType]->Get()->IASetVertexBuffers(0, vertexBufferCount, vertexBufferView);
+
+    // 描画
+    pGraphicsCommandLists[usePipelineType]->Get()->DrawInstanced(pVertexBuffer->GetVertexCount(), 1, 0, 0);
 }
 
 void glib::EndRender(const GLIB_PIPELINE_TYPE& usePipelineType)
@@ -301,12 +342,15 @@ void glib::Release()
     |
     Pipeline
     |
+    VertexBuffer
+    |
     Time
     |
     ImGui
     */
 
     SafeDelete(pTime);
+    SafeDelete(pVertexBuffer);
     for (int i = 0; i < SHADER_MAX; ++i)
     {
         SafeDelete(pPipelines[i]);

@@ -1,6 +1,8 @@
 #include <GLibVertexBuffer.h>
 
-bool glib::GLibVertexBuffer::Initialize(ID3D12Device* device, const void* vertexData, UINT vertexCount, UINT stride)
+#include <GLibVertexBuffer.h>
+
+bool glib::GLibVertexBuffer::Initialize(ID3D12Device* device, const void* vertexData, size_t size, UINT vertexCount, UINT stride)
 {
     if (!device || !vertexData || vertexCount == 0 || stride == 0)
     {
@@ -10,7 +12,9 @@ bool glib::GLibVertexBuffer::Initialize(ID3D12Device* device, const void* vertex
 
     m_VertexCount = vertexCount;
     m_Stride = stride;
-    
+
+    size_t bufferSize = vertexCount * stride;
+
     // 頂点バッファのリソースを作成
     D3D12_HEAP_PROPERTIES heapProperties = {};
     heapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
@@ -22,7 +26,7 @@ bool glib::GLibVertexBuffer::Initialize(ID3D12Device* device, const void* vertex
     D3D12_RESOURCE_DESC resourceDesc = {};
     resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
     resourceDesc.Alignment = 0;
-    resourceDesc.Width = sizeof(vertexData);
+    resourceDesc.Width = bufferSize;
     resourceDesc.Height = 1;
     resourceDesc.DepthOrArraySize = 1;
     resourceDesc.MipLevels = 1;
@@ -56,12 +60,16 @@ bool glib::GLibVertexBuffer::Initialize(ID3D12Device* device, const void* vertex
         return false;
     }
 
-    memcpy(mappedData, vertexData, sizeof(vertexData));
+    // 頂点データをコピー
+    memcpy(mappedData, vertexData, bufferSize);
 
     m_VertexBuffer->Unmap(0, nullptr);
 
     // 頂点バッファビューを設定
     m_VertexBufferView.BufferLocation = m_VertexBuffer->GetGPUVirtualAddress();
-    m_VertexBufferView.SizeInBytes = sizeof(vertexData);
-    m_VertexBufferView.StrideInBytes = stride * vertexCount;
+    m_VertexBufferView.SizeInBytes = static_cast<UINT>(bufferSize);
+    m_VertexBufferView.StrideInBytes = stride;
+
+    return true;
 }
+

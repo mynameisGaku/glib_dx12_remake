@@ -15,7 +15,7 @@ namespace glib
                 glib::Logger::FormatErrorLog("Failed to open Binary file: %s", filename);
                 return;
             }
-            glib::Logger::FormatDebugLog("Loading Binary file: %s", filename);
+            glib::Logger::FormatInfoLog("Loading Binary file: %s", filename);
             m_Succeeded = true;
             std::istreambuf_iterator<char> first(ifs);
             std::istreambuf_iterator<char> last;
@@ -28,7 +28,7 @@ namespace glib
             }
             else
             {
-                glib::Logger::FormatDebugLog("Loaded Binary file size: %zu bytes", m_Buffer.size());
+                glib::Logger::FormatInfoLog("Loaded Binary file size: %zu bytes", m_Buffer.size());
             }
         }
         bool Succeeded() const
