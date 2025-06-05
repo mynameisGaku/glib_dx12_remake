@@ -12,7 +12,6 @@
 #include <GLibPipeline.h>
 #include <GLibMemory.h>
 #include <GLibWindow.h>
-#include <GLibRootSignature.h>
 #include <GLibPipeline.h>
 #include <GLibBinaryLoader.h>
 
@@ -35,8 +34,6 @@ namespace glib
     glib::GLibFence*                    pFence;
     glib::GLibTime*                     pTime;
     glib::GLibWindow*                   pWindow;
-    glib::GLibRootSignature*            pRootSignatures[SHADER_MAX];
-    glib::GLibRootSignature*            pCurrentRootSignature;
 
 
     D3D12_VIEWPORT                      ViewPort;
@@ -54,7 +51,6 @@ bool glib::Init()
         {
             pPipelines[i]            = new GLibPipeline;
             pGraphicsCommandLists[i] = new GLibGraphicsCommandList;
-            pRootSignatures[i]       = new GLibRootSignature;
         }
         pDevice                             = new GLibDevice;
         pSwapChain                          = new GLibSwapChain;
@@ -156,16 +152,49 @@ bool glib::Init()
     rootSigDesc.pParameters = nullptr;
     rootSigDesc.NumStaticSamplers = 0; // No static samplers for now
     rootSigDesc.pStaticSamplers = nullptr;
-    pRootSignatures[0]->Initialize(pDevice->Get(), rootSigDesc);
 
+    ID3DBlob* blob;
+    HRESULT hr = D3D12SerializeRootSignature(
+        &rootSigDesc,
+        D3D_ROOT_SIGNATURE_VERSION_1,
+        &blob,
+        nullptr
+    );
+    glib::Logger::FormatDebugLog("Serializing root signature...");
+
+    if (FAILED(hr))
+    {
+        glib::Logger::FormatErrorLog("Failed to serialize root signature: HRESULT = 0x{:X}", hr);
+        return false;
+    }
+
+    ComPtr<ID3D12RootSignature> pRootsignature;
+    hr = pDevice->Get()->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(pRootsignature.GetAddressOf()));
+    glib::Logger::FormatDebugLog("Creating root signature...");
+
+    if (FAILED(hr))
+    {
+        glib::Logger::FormatErrorLog("Failed to create root signature: HRESULT = 0x{:X}", hr);
+        blob->Release();
+        return false;
+    }
+
+    blob->Release();
+    glib::Logger::FormatDebugLog("Root signature created successfully.");
 
 
     // Initialize the pipelines
     // ここでやっている複数の設定(DESC)は全て、一つのパイプラインの設定をしています。
     // 最終的にまとめてようやく、一つのパイプラインが出来上がります。
     // 細かな設定は、パイプラインの種類によって異なるので、いろいろ調べつつ、自分が求めているパイプラインにカスタムしよう。
-    glib::GLibBinaryLoader vs("Resources/Shaders/SpriteVS.cso");
-    glib::GLibBinaryLoader ps("Resources/Shaders/SpritePS.cso");
+#ifdef _DEBUG
+    glib::GLibBinaryLoader vs("x64/Debug/SpriteVS.cso");
+    glib::GLibBinaryLoader ps("x64/Debug/SpritePS.cso");
+#else
+    glib::GLibBinaryLoader vs("x64/Release/SpriteVS.cso");
+    glib::GLibBinaryLoader ps("x64/Release/SpritePS.cso");
+#endif
+
     UINT slot0 = 0;
     D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -202,7 +231,7 @@ bool glib::Init()
     depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
     depthStencilDesc.StencilEnable = false; // Stencil test is disabled for now
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-    psoDesc.pRootSignature = pRootSignatures[0]->Get();
+    psoDesc.pRootSignature = pRootsignature.Get();
     psoDesc.VS = { vs.Code(), vs.Size() };
     psoDesc.PS = { ps.Code(), ps.Size() };
     psoDesc.InputLayout = { inputLayout, _countof(inputLayout) };
@@ -234,11 +263,10 @@ void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
     pSwapChain->DrawBegin(pGraphicsCommandLists[usePipelineType]);
 
     pCurrentPipeline = pPipelines[usePipelineType];
-    pCurrentRootSignature = pRootSignatures[usePipelineType];
     pGraphicsCommandLists[usePipelineType]->Get()->SetPipelineState(pCurrentPipeline->Get());
     pGraphicsCommandLists[usePipelineType]->Get()->RSSetViewports(1, &ViewPort);
     pGraphicsCommandLists[usePipelineType]->Get()->RSSetScissorRects(1, &ScissorRect);
-    pGraphicsCommandLists[usePipelineType]->Get()->SetGraphicsRootSignature(pCurrentRootSignature->Get());
+    pGraphicsCommandLists[usePipelineType]->Get()->SetGraphicsRootSignature(pCurrentPipeline->GetRootSignature());
 }
 
 void glib::EndRender(const GLIB_PIPELINE_TYPE& usePipelineType)
@@ -282,10 +310,6 @@ void glib::Release()
     for (int i = 0; i < SHADER_MAX; ++i)
     {
         SafeDelete(pPipelines[i]);
-    }
-    for (int i = 0; i < SHADER_MAX; ++i)
-    {
-        SafeDelete(pRootSignatures[i]);
     }
     SafeDelete(pSwapChain);
     SafeDelete(pDescriptorPool);

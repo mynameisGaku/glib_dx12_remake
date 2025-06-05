@@ -17,9 +17,11 @@ namespace glib
 
         // パイプラインステートを取得
         ID3D12PipelineState* Get() const { return m_PipelineState.Get(); }
+        ID3D12RootSignature* GetRootSignature() const { return m_RootSignature.Get(); }
 
     private:
         ComPtr<ID3D12PipelineState> m_PipelineState = nullptr;
+        ComPtr<ID3D12RootSignature> m_RootSignature = nullptr;
         HRESULT m_Hr;
     };
 }

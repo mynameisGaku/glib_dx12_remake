@@ -156,7 +156,6 @@
     <ClCompile Include="EngineCore\GLibIndexBuffer.cpp" />
     <ClCompile Include="EngineCore\GLibMessage.cpp" />
     <ClCompile Include="EngineCore\GLibPipeline.cpp" />
-    <ClCompile Include="EngineCore\GLibRootSignature.cpp" />
     <ClCompile Include="EngineCore\GLibTexture.cpp" />
     <ClCompile Include="EngineCore\GLibTime.cpp" />
     <ClCompile Include="EngineCore\GLibVertexBuffer.cpp" />
@@ -185,7 +184,6 @@
     <ClInclude Include="EngineCore\GLibLogger.h" />
     <ClInclude Include="EngineCore\GLibMessage.h" />
     <ClInclude Include="EngineCore\GLibPipeline.h" />
-    <ClInclude Include="EngineCore\GLibRootSignature.h" />
     <ClInclude Include="EngineCore\GLibStringUtil.h" />
     <ClInclude Include="EngineCore\GLibTexture.h" />
     <ClInclude Include="EngineCore\GLibTime.h" />

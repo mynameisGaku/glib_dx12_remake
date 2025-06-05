@@ -1,7 +1,15 @@
 #include <GLibPipeline.h>
+#include <utility>
 
 glib::GLibPipeline::~GLibPipeline()
 {
+    // ルートシグネチャ解放
+    if (m_RootSignature)
+    {
+        m_RootSignature.Reset();
+        glib::Logger::FormatDebugLog("GLibPipeline root signature released successfully.");
+    }
+
     if (m_PipelineState)
     {
         m_PipelineState.Reset();
@@ -20,5 +28,9 @@ bool glib::GLibPipeline::Initialize(ID3D12Device* device, const D3D12_GRAPHICS_P
         return false;
     }
     glib::Logger::FormatDebugLog("Graphics pipeline state created successfully.");
+
+    // get rootsignature from desc
+    m_RootSignature = std::move(psoDesc.pRootSignature);
+
     return true;
 }

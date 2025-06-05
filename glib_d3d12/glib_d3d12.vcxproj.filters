@@ -51,9 +51,6 @@
     <ClCompile Include="EngineCore\GLibDescriptorHeap.cpp">
       <Filter>EngineCore</Filter>
     </ClCompile>
-    <ClCompile Include="EngineCore\GLibRootSignature.cpp">
-      <Filter>EngineCore</Filter>
-    </ClCompile>
     <ClCompile Include="EngineCore\GLibVertexBuffer.cpp">
       <Filter>EngineCore</Filter>
     </ClCompile>
@@ -120,9 +117,6 @@
       <Filter>EngineCore</Filter>
     </ClInclude>
     <ClInclude Include="EngineCore\GLibDescriptorHeap.h">
-      <Filter>EngineCore</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineCore\GLibRootSignature.h">
       <Filter>EngineCore</Filter>
     </ClInclude>
     <ClInclude Include="EngineCore\GLibPipeline.h">
