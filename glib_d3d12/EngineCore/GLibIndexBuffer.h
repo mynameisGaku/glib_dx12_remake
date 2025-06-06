@@ -9,7 +9,7 @@ namespace glib
     {
     public:
         GLibIndexBuffer() = default;
-        ~GLibIndexBuffer() = default;
+        ~GLibIndexBuffer();
 
         // インデックスバッファの初期化
         bool Initialize(ID3D12Device* device, const void* indexData, UINT indexCount, UINT stride);

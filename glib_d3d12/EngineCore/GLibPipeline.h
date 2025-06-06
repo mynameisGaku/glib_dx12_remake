@@ -9,7 +9,7 @@ namespace glib
     {
     public:
 
-        GLibPipeline() = default;
+        GLibPipeline() {}
         ~GLibPipeline();
 
         // パイプラインステートの初期化
@@ -22,6 +22,6 @@ namespace glib
     private:
         ComPtr<ID3D12PipelineState> m_PipelineState = nullptr;
         ComPtr<ID3D12RootSignature> m_RootSignature = nullptr;
-        HRESULT m_Hr;
+        HRESULT m_Hr{};
     };
 }

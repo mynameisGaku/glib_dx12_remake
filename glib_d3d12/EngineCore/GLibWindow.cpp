@@ -1,5 +1,6 @@
-#include "GLibWindow.h"
-
+#include <GLibWindow.h>
+#include <GLibLogger.h>
+#include <GLib.h>
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -50,6 +51,7 @@ void glib::GLibWindow::Finalize(const LPCWSTR& wndName, int width, int height)
         wc.hbrBackground = (HBRUSH)GetStockObject(DKGRAY_BRUSH);
         wc.lpszClassName = L"EngineWindowClass";
         RegisterClassEx(&wc);
+        glib::Logger::FormatDebugLog("Window class registered: %s", glib::WStringToString(wc.lpszClassName).c_str());
     }
 
     // 表示位置、ウィンドウの大きさ調整
@@ -69,6 +71,7 @@ void glib::GLibWindow::Finalize(const LPCWSTR& wndName, int width, int height)
             windowPosX, windowPosY, windowWidth, windowHeight,
             nullptr, nullptr, GetModuleHandle(nullptr), nullptr
         );
+        glib::Logger::FormatDebugLog("Window created: %s at (%d, %d) with size (%d, %d)", glib::WStringToString(m_WindowTitle).c_str(), windowPosX, windowPosY, windowWidth, windowHeight);
     }
 
     if (m_HWnd == nullptr)
@@ -78,6 +81,7 @@ void glib::GLibWindow::Finalize(const LPCWSTR& wndName, int width, int height)
     }
 
     ShowWindow(m_HWnd, SW_SHOW);
+    glib::Logger::DebugLog("Window shown successfully.");
 }
 
 void glib::GLibWindow::SetName(const LPCWSTR& wndName)

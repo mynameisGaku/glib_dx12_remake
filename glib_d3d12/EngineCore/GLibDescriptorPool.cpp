@@ -20,22 +20,22 @@ bool glib::GLibDescriptorPool::Initialize(ID3D12Device* device)
     return true;
 }
 
-ID3D12DescriptorHeap* glib::GLibDescriptorPool::Get(const std::string& name) const
+ID3D12DescriptorHeap* glib::GLibDescriptorPool::Get(const GLIB_DESCRIPTOR_HEAP_TYPE& type) const
 {
-    auto it = m_DescriptorHeaps.find(name);
+    auto it = m_DescriptorHeaps.find(type);
     if (it != m_DescriptorHeaps.end())
     {
         return it->second.Get();
     }
-    Logger::ErrorLog("Descriptor heap with name '" + name + "' not found.");
+    Logger::ErrorLog("Descriptor heap with name '" + glib::EnumToString(type) + "' not found.");
     return nullptr;
 }
 
-ID3D12DescriptorHeap* glib::GLibDescriptorPool::Allocate(const std::string& name, const D3D12_DESCRIPTOR_HEAP_DESC& desc)
+ID3D12DescriptorHeap* glib::GLibDescriptorPool::Allocate(const GLIB_DESCRIPTOR_HEAP_TYPE& type, const D3D12_DESCRIPTOR_HEAP_DESC& desc)
 {
-    if (m_DescriptorHeaps.find(name) != m_DescriptorHeaps.end())
+    if (m_DescriptorHeaps.find(type) != m_DescriptorHeaps.end())
     {
-        Logger::ErrorLog("Descriptor heap with name '" + name + "' already exists.");
+        Logger::ErrorLog("Descriptor heap with name '" + glib::EnumToString(type) + "' already exists.");
         return nullptr;
     }
     ComPtr<ID3D12DescriptorHeap> descriptorHeap;
@@ -45,22 +45,22 @@ ID3D12DescriptorHeap* glib::GLibDescriptorPool::Allocate(const std::string& name
         Logger::ErrorLog("Failed to create descriptor heap: " + std::to_string(m_Hr));
         return nullptr;
     }
-    m_DescriptorHeaps[name] = descriptorHeap;
-    Logger::DebugLog("Descriptor heap '" + name + "' created successfully.");
-    return m_DescriptorHeaps[name].Get();
+    m_DescriptorHeaps[type] = descriptorHeap;
+    Logger::DebugLog("Descriptor heap '" + glib::EnumToString(type) + "' created successfully.");
+    return m_DescriptorHeaps[type].Get();
 }
 
-void glib::GLibDescriptorPool::Free(const std::string& name)
+void glib::GLibDescriptorPool::Free(const GLIB_DESCRIPTOR_HEAP_TYPE& type)
 {
-    auto it = m_DescriptorHeaps.find(name);
+    auto it = m_DescriptorHeaps.find(type);
     if (it != m_DescriptorHeaps.end())
     {
         m_DescriptorHeaps.erase(it);
-        Logger::DebugLog("Descriptor heap '" + name + "' freed successfully.");
+        Logger::DebugLog("Descriptor heap '" + glib::EnumToString(type) + "' freed successfully.");
     }
     else
     {
-        Logger::ErrorLog("Descriptor heap with name '" + name + "' not found.");
+        Logger::ErrorLog("Descriptor heap with name '" + glib::EnumToString(type) + "' not found.");
     }
 }
 

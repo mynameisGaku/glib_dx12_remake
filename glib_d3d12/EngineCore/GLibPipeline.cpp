@@ -30,7 +30,7 @@ bool glib::GLibPipeline::Initialize(ID3D12Device* device, const D3D12_GRAPHICS_P
     glib::Logger::FormatDebugLog("Graphics pipeline state created successfully.");
 
     // get rootsignature from desc
-    m_RootSignature = std::move(psoDesc.pRootSignature);
+    m_RootSignature = psoDesc.pRootSignature;
 
     return true;
 }

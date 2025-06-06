@@ -1,6 +1,17 @@
 #include <GLibVertexBuffer.h>
 
-#include <GLibVertexBuffer.h>
+glib::GLibVertexBuffer::~GLibVertexBuffer()
+{
+    if (m_VertexBuffer)
+    {
+        m_VertexBuffer.Reset();
+        glib::Logger::DebugLog("Vertex buffer resources released successfully.");
+    }
+    else
+    {
+        glib::Logger::DebugLog("No vertex buffer resources to release.");
+    }
+}
 
 bool glib::GLibVertexBuffer::Initialize(ID3D12Device* device, const void* vertexData, UINT vertexCount, UINT stride)
 {

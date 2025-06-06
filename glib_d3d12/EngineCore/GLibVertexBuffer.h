@@ -10,7 +10,7 @@ namespace glib
     public:
 
         GLibVertexBuffer() = default;
-        ~GLibVertexBuffer() = default;
+        ~GLibVertexBuffer();
 
         // 頂点バッファの初期化
         bool Initialize(ID3D12Device* device, const void* vertexData, UINT vertexCount, UINT stride);

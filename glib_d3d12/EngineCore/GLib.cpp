@@ -15,6 +15,10 @@
 #include <GLibBinaryLoader.h>
 #include <GLibVertexBuffer.h>
 #include <GLibIndexBuffer.h>
+#include <GLibConstantBuffer.h>
+
+#include <windows.h>
+#include <Vendor/magic_enum/magic_enum.hpp>
 
 #include <DirectXMath.h>
 using namespace DirectX;
@@ -45,7 +49,8 @@ namespace glib
 
     /* resources */
     glib::GLibVertexBuffer*             pVertexBuffer;
-    glib::GLibIndexBuffer*             pIndexBuffer;
+    glib::GLibIndexBuffer*              pIndexBuffer;
+    glib::GLibConstantBuffer*           pConstantBuffer;
 
 
     D3D12_VIEWPORT                      ViewPort;
@@ -71,6 +76,7 @@ bool glib::Init()
             pPipelines[i]            = new GLibPipeline;
             pGraphicsCommandLists[i] = new GLibGraphicsCommandList;
         }
+        pConstantBuffer                     = new GLibConstantBuffer;
         pVertexBuffer                       = new GLibVertexBuffer;
         pIndexBuffer                        = new GLibIndexBuffer;
         pDevice                             = new GLibDevice;
@@ -153,9 +159,45 @@ bool glib::Init()
         return false;
     }
 
+    // Initialize the descriptor heap
+    {
+        // RTV
+        {
+            D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+            desc.NumDescriptors = BACKBUFF_MAX; // バックバッファの数
+            desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV; // レンダーターゲットビュー用のヒープ
+            desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE; // シェーダーからアクセスしない
+            pDescriptorPool->Allocate(GLIB_DESCRIPTOR_HEAP_TYPE_RTV, desc);
+        }
 
-    // Initialize the descriptor pool
-    pDescriptorPool->Initialize(pDevice->Get());
+        // CBV_SRV_UAV
+        {
+            D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+            desc.NumDescriptors = 3000;
+            desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+            desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+            pDescriptorPool->Allocate(GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, desc);
+        }
+
+        // SAMPLER
+        {
+            D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+            desc.NumDescriptors = 1000; // サンプラーの数
+            desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER; // サンプラー用のヒープ
+            desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE; // シェーダーからアクセス可能
+            pDescriptorPool->Allocate(GLIB_DESCRIPTOR_HEAP_TYPE_SAMPLER, desc);
+        }
+
+        // DSV
+        {
+            D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+            desc.NumDescriptors = 1; // 深度ステンシルビュー用のヒープ
+            desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV; // 深度ステンシルビュー用のヒープ
+            desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE; // シェーダーからアクセスしない
+            pDescriptorPool->Allocate(GLIB_DESCRIPTOR_HEAP_TYPE_DSV, desc);
+        }
+    }
+
 
 
     // Initialize the swap chain
@@ -167,10 +209,22 @@ bool glib::Init()
 
 
     // Initialize the RootSignature
+    D3D12_DESCRIPTOR_RANGE ranges[1] = {};
+    UINT b0 = 0;
+    ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; // Constant Buffer View
+    ranges[0].BaseShaderRegister = b0; // Base shader register for this range
+    ranges[0].NumDescriptors = 1; // Number of descriptors in this range
+    ranges[0].RegisterSpace = 0; // Register space for this range
+    ranges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // Append to the end of the descriptor table
+    D3D12_ROOT_PARAMETER rootParameters[1] = {};
+    rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // Descriptor table type
+    rootParameters[0].DescriptorTable.pDescriptorRanges = ranges; // Pointer to the descriptor ranges
+    rootParameters[0].DescriptorTable.NumDescriptorRanges = _countof(ranges); // Number of descriptor ranges
+    rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL; // Shader visibility for this root parameter
     D3D12_ROOT_SIGNATURE_DESC rootSigDesc = {};
     rootSigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-    rootSigDesc.NumParameters = 0; // No parameters for now
-    rootSigDesc.pParameters = nullptr;
+    rootSigDesc.pParameters = rootParameters;
+    rootSigDesc.NumParameters = _countof(rootParameters); // Number of root parameters
     rootSigDesc.NumStaticSamplers = 0; // No static samplers for now
     rootSigDesc.pStaticSamplers = nullptr;
 
@@ -292,6 +346,26 @@ bool glib::Init()
     pIndexBuffer->Initialize(pDevice->Get(), indices, indexxCount, stride);
 
 
+    // Initialize the constant buffer
+    D3D12_RESOURCE_DESC cbDesc = {};
+    cbDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    cbDesc.Alignment = 0;
+    cbDesc.Width = 256; // Size of the constant buffer
+    cbDesc.Height = 1;
+    cbDesc.DepthOrArraySize = 1;
+    cbDesc.MipLevels = 1;
+    cbDesc.Format = DXGI_FORMAT_UNKNOWN; // No format for constant buffers
+    cbDesc.SampleDesc.Count = 1; // No multisampling
+    cbDesc.SampleDesc.Quality = 0;
+    cbDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR; // Row-major layout
+    cbDesc.Flags = D3D12_RESOURCE_FLAG_NONE; // No special flags for constant buffers
+    if (!pConstantBuffer->Initialize(pDevice, pDescriptorPool, cbDesc))
+    {
+        glib::Logger::ErrorLog("Failed to initialize constant buffer.");
+        return false;
+    }
+
+
     // Initialize the time management
     pTime->SetLevelLoaded();
 
@@ -304,6 +378,15 @@ bool glib::Init()
 
 void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
 {
+    static float radian = 0.0f;
+    radian += 1 * pTime->DeltaTime();
+    XMMATRIX world = XMMatrixRotationY(radian);
+    XMVECTOR eye = { 0, 0, -2.0f }, focus = { 0, 0, 0 }, up = { 0, 1, 0 };
+    XMMATRIX view = XMMatrixLookAtLH(eye, focus, up);
+    XMMATRIX proj = XMMatrixPerspectiveFovLH(XMConvertToRadians(60.0f), pWindow->GetAspect(), 0.1f, 100.0f);
+    XMMATRIX mat = world * view * proj;
+
+    pConstantBuffer->GetMappedBuffer<CBUFFER_0>()->Mat = mat;
     // 描画受付開始 (DrawBegin内でRenderTargetのクリア・セット、バリアの設定を行っています。)
     pSwapChain->DrawBegin(pGraphicsCommandLists[usePipelineType]);
 
@@ -322,6 +405,12 @@ void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
     UINT vertexBufferCount = _countof(vertexBufferView);
     pGraphicsCommandLists[usePipelineType]->Get()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     pGraphicsCommandLists[usePipelineType]->Get()->IASetVertexBuffers(0, vertexBufferCount, vertexBufferView);
+
+    // 定数バッファセット
+    auto cbvheap = pDescriptorPool->Get(GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    pGraphicsCommandLists[usePipelineType]->Get()->SetDescriptorHeaps(1, &cbvheap);
+    auto hcbvheap = cbvheap->GetGPUDescriptorHandleForHeapStart();
+    pGraphicsCommandLists[usePipelineType]->Get()->SetGraphicsRootDescriptorTable(0, hcbvheap);
 
     // インデックスセット
     pGraphicsCommandLists[usePipelineType]->Get()->IASetIndexBuffer(&pIndexBuffer->GetIndexBufferView());
@@ -370,6 +459,7 @@ void glib::Release()
     */
 
     SafeDelete(pTime);
+    SafeDelete(pConstantBuffer);
     SafeDelete(pIndexBuffer);
     SafeDelete(pVertexBuffer);
     for (int i = 0; i < SHADER_MAX; ++i)
@@ -463,4 +553,54 @@ void glib::SetWindowSize(int width, int height)
 glib::GLibWindow* glib::GetWindow()
 {
     return pWindow;
+}
+
+std::wstring glib::StringToWString(const std::string& str)
+{
+    std::wstring ret;
+    //一度目の呼び出しは文字列数を知るため
+    auto result = MultiByteToWideChar(CP_UTF8,
+        0,
+        str.c_str(),//入力文字列
+        (int)str.length(),
+        nullptr,
+        0);
+    assert(result >= 0);
+    ret.resize(result);//確保する
+    //二度目の呼び出しは変換
+    result = MultiByteToWideChar(CP_UTF8,
+        0,
+        str.c_str(),//入力文字列
+        (int)str.length(),
+        ret.data(),
+        (int)ret.size());
+    return ret;
+}
+
+std::string glib::WStringToString(const std::wstring& wstr)
+{
+    std::string ret;
+    //一度目の呼び出しは文字列数を知るため
+    auto result = WideCharToMultiByte(
+        CP_ACP,
+        0,
+        wstr.c_str(),//入力文字列
+        (int)wstr.length(),
+        nullptr,
+        0,
+        nullptr,
+        nullptr);
+    assert(result >= 0);
+    ret.resize(result);//確保する
+    //二度目の呼び出しは変換
+    result = WideCharToMultiByte(
+        CP_ACP,
+        0,
+        wstr.c_str(),//入力文字列
+        (int)wstr.length(),
+        ret.data(),
+        (int)ret.size(),
+        nullptr,
+        nullptr);
+    return ret;
 }

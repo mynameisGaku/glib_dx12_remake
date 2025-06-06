@@ -102,13 +102,9 @@ bool glib::GLibSwapChain::Initialize(GLibDevice* device, GLibCommandQueue* queue
 
     glib::Logger::DebugLog("Swap chain created successfully.");
 
-    // バックバッファビューの入れ物であるDescriptorHeapを作成
+    // バックバッファビューの入れ物であるDescriptorHeapを取得
     {
-        D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-        desc.NumDescriptors = buffIdx; // バックバッファの数
-        desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV; // レンダーターゲットビュー用のヒープ
-        desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE; // シェーダーからアクセスしない
-        if (!m_BbvHeap.Initialize(m_pDescriptorPool, m_pDescriptorPool->Allocate("SwapChainRTVHeap", desc)))
+        if (!m_BbvHeap.Initialize(m_pDescriptorPool, m_pDescriptorPool->Get(glib::GLIB_DESCRIPTOR_HEAP_TYPE_RTV)))
         {
             glib::Logger::FormatErrorLog("Failed to create RTV descriptor heap. HRESULT: 0x{%X}", m_Hr);
             return false;

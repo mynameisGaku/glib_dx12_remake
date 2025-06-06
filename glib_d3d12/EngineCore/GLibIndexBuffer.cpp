@@ -1,5 +1,18 @@
 #include <GLibIndexBuffer.h>
 
+glib::GLibIndexBuffer::~GLibIndexBuffer()
+{
+    if (m_IndexBuffer)
+    {
+        m_IndexBuffer.Reset();
+        glib::Logger::DebugLog("Index buffer resources released successfully.");
+    }
+    else
+    {
+        glib::Logger::DebugLog("No index buffer resources to release.");
+    }
+}
+
 bool glib::GLibIndexBuffer::Initialize(ID3D12Device* device, const void* indexData, UINT indexCount, UINT stride)
 {
     if (!device || !indexData) 

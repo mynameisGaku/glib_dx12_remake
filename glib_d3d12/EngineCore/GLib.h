@@ -3,8 +3,23 @@
 #include <GLibWindow.h>
 #include <GLibLogger.h>
 
+#include <string>
+
+/* vendor */
+#include <Vendor/magic_enum/magic_enum.hpp>
+
 namespace glib
 {
+    // ディスクリプタヒープの種類
+    typedef enum
+    {
+        GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV = 0,                // CBV/SRV/UAV用のディスクリプタヒープ
+        GLIB_DESCRIPTOR_HEAP_TYPE_SAMPLER,                        // サンプラーディスクリプタヒープ
+        GLIB_DESCRIPTOR_HEAP_TYPE_RTV,                            // レンダーターゲットビュー用のディスクリプタヒープ
+        GLIB_DESCRIPTOR_HEAP_TYPE_DSV,                            // 深度ステンシルビュー用のディスクリプタヒープ
+        GLIB_DESCRIPTOR_HEAP_TYPE_MAX                             // ディスクリプタヒープの最大値
+    }GLIB_DESCRIPTOR_HEAP_TYPE;
+
     // 描画パイプラインの種類
     typedef enum
     {
@@ -61,6 +76,16 @@ namespace glib
     void SetWindowName(const LPCWSTR& wndName);
     // ウィンドウのサイズを設定する
     void SetWindowSize(int width, int height);
-
+    // ウィンドウのポインタを取得する
     GLibWindow* GetWindow();
+
+    // EnumをStringに変換する
+    template <typename T>
+    std::string EnumToString(T _enum)
+    {
+        return std::string(magic_enum::enum_name(_enum));
+    }
+
+    std::wstring StringToWString(const std::string& str);
+    std::string WStringToString(const std::wstring& wstr);
 }
