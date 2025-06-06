@@ -13,16 +13,12 @@ namespace glib
 
         GLibConstantBuffer() = default;
         ~GLibConstantBuffer();
-        bool Initialize(GLibDevice* device, const D3D12_RESOURCE_DESC& desc);
-
-        ID3D12Resource* Get() const { return m_ConstantBuffer.Get(); }
+        bool Initialize(GLibDevice* device, GLibDescriptorPool* pPool, const D3D12_RESOURCE_DESC& desc);
 
     private:
-        GLibDevice*             m_pDevice = nullptr; // デバイスへのポインタ
-        GLibDescriptorPool*     m_pDescriptorPool = nullptr; // ディスクリプタプールへのポインタ
-        ID3D12DescriptorHeap*   m_pConstantHeap = nullptr;
-        ComPtr<ID3D12Resource>  m_ConstantBuffer = nullptr;
-        void*                   m_pConstBufferData = nullptr; // マップされた定数バッファのポインタ
-        HRESULT                 m_Hr = {};
+        void* m_pMappedConstBuf;
+        ComPtr<ID3D12Resource> m_ConstBuf;
+        ID3D12DescriptorHeap* m_pCbvHeap;
+        HRESULT m_Hr;
     };
 }

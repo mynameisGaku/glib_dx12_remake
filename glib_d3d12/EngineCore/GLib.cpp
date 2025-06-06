@@ -16,6 +16,9 @@
 #include <GLibVertexBuffer.h>
 #include <GLibIndexBuffer.h>
 
+#include <DirectXMath.h>
+using namespace DirectX;
+
 /* pragma link */
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -47,6 +50,13 @@ namespace glib
 
     D3D12_VIEWPORT                      ViewPort;
     D3D12_RECT                          ScissorRect;
+
+
+    struct CBUFFER_0
+    {
+        XMMATRIX Mat;
+    };
+
 }
 
 bool glib::Init()
@@ -206,6 +216,7 @@ bool glib::Init()
     glib::GLibBinaryLoader ps("x64/Release/SpritePS.cso");
 #endif
 
+
     UINT slot0 = 0;
     D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -265,11 +276,10 @@ bool glib::Init()
         0.5f, -0.5f, 0.0f,
         0.5f, 0.5f, 0.0f
     };
-
     UINT vertexCount = _countof(vertices) / 3;
     UINT stride = sizeof(float) * 3;
-    
     pVertexBuffer->Initialize(pDevice->Get(), vertices, vertexCount, stride);
+
 
     // Initialize the index buffer
     unsigned short indices[] =
@@ -280,6 +290,7 @@ bool glib::Init()
     UINT indexxCount = _countof(indices);
     stride = sizeof(unsigned short);
     pIndexBuffer->Initialize(pDevice->Get(), indices, indexxCount, stride);
+
 
     // Initialize the time management
     pTime->SetLevelLoaded();

@@ -164,6 +164,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Resources\Shaders\Constant.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineCore\GLib.h" />
