@@ -3,23 +3,26 @@
 #include <GLibComPtr.h>
 #include <GLibLogger.h>
 
-class GLibIndexBuffer
+namespace glib
 {
-public:
-    GLibIndexBuffer() = default;
-    ~GLibIndexBuffer() = default;
+    class GLibIndexBuffer
+    {
+    public:
+        GLibIndexBuffer() = default;
+        ~GLibIndexBuffer() = default;
 
-    // インデックスバッファの初期化
-    bool Initialize(ID3D12Device* device, const void* indexData, size_t size, UINT indexCount);
+        // インデックスバッファの初期化
+        bool Initialize(ID3D12Device* device, const void* indexData, UINT indexCount, UINT stride);
 
-    // インデックスバッファビューを取得
-    D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() { return m_IndexBufferView; }
+        // インデックスバッファビューを取得
+        D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() { return m_IndexBufferView; }
 
-    // インデックス数を取得
-    UINT GetIndexCount() const { return m_IndexCount; }
-private:
-    ComPtr<ID3D12Resource>      m_IndexBuffer = nullptr; // インデックスバッファリソース
-    D3D12_INDEX_BUFFER_VIEW     m_IndexBufferView = {};  // インデックスバッファビュー
-    UINT                        m_IndexCount = 0;        // インデックス数
-    HRESULT                     m_Hr{};
-};
+        // インデックス数を取得
+        UINT GetIndexCount() const { return m_IndexCount; }
+    private:
+        ComPtr<ID3D12Resource>      m_IndexBuffer = nullptr; // インデックスバッファリソース
+        D3D12_INDEX_BUFFER_VIEW     m_IndexBufferView = {};  // インデックスバッファビュー
+        UINT                        m_IndexCount = 0;        // インデックス数
+        HRESULT                     m_Hr{};
+    };
+}

@@ -2,7 +2,7 @@
 
 #include <GLibVertexBuffer.h>
 
-bool glib::GLibVertexBuffer::Initialize(ID3D12Device* device, const void* vertexData, size_t size, UINT vertexCount, UINT stride)
+bool glib::GLibVertexBuffer::Initialize(ID3D12Device* device, const void* vertexData, UINT vertexCount, UINT stride)
 {
     if (!device || !vertexData || vertexCount == 0 || stride == 0)
     {

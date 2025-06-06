@@ -14,6 +14,7 @@
 #include <GLibWindow.h>
 #include <GLibBinaryLoader.h>
 #include <GLibVertexBuffer.h>
+#include <GLibIndexBuffer.h>
 
 /* pragma link */
 #pragma comment(lib, "d3d12.lib")
@@ -41,6 +42,7 @@ namespace glib
 
     /* resources */
     glib::GLibVertexBuffer*             pVertexBuffer;
+    glib::GLibIndexBuffer*             pIndexBuffer;
 
 
     D3D12_VIEWPORT                      ViewPort;
@@ -59,7 +61,8 @@ bool glib::Init()
             pPipelines[i]            = new GLibPipeline;
             pGraphicsCommandLists[i] = new GLibGraphicsCommandList;
         }
-        pVertexBuffer                       = new glib::GLibVertexBuffer;
+        pVertexBuffer                       = new GLibVertexBuffer;
+        pIndexBuffer                        = new GLibIndexBuffer;
         pDevice                             = new GLibDevice;
         pSwapChain                          = new GLibSwapChain;
         pCommandAllocator                   = new GLibCommandAllocator;
@@ -257,23 +260,26 @@ bool glib::Init()
 
     // Initialize the vertex buffer
     float vertices[] = {
-        -0.5f, -0.3f, 0.0f,
-        0.3f, 0.5f, 0.0f,
+        -0.5f, -0.5f, 0.0f,
         -0.5f, 0.5f, 0.0f,
-
-        -0.3f, -0.5f, 0.0f,
         0.5f, -0.5f, 0.0f,
-        0.5f, 0.3f, 0.0f
+        0.5f, 0.5f, 0.0f
     };
 
     UINT vertexCount = _countof(vertices) / 3;
     UINT stride = sizeof(float) * 3;
-    size_t size = sizeof(vertices);
+    
+    pVertexBuffer->Initialize(pDevice->Get(), vertices, vertexCount, stride);
 
-    pVertexBuffer->Initialize(pDevice->Get(), vertices, size, vertexCount, stride);
-
-
-
+    // Initialize the index buffer
+    unsigned short indices[] =
+    {
+        0, 1, 2,
+        2, 1, 3
+    };
+    UINT indexxCount = _countof(indices);
+    stride = sizeof(unsigned short);
+    pIndexBuffer->Initialize(pDevice->Get(), indices, indexxCount, stride);
 
     // Initialize the time management
     pTime->SetLevelLoaded();
@@ -306,8 +312,11 @@ void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
     pGraphicsCommandLists[usePipelineType]->Get()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     pGraphicsCommandLists[usePipelineType]->Get()->IASetVertexBuffers(0, vertexBufferCount, vertexBufferView);
 
+    // インデックスセット
+    pGraphicsCommandLists[usePipelineType]->Get()->IASetIndexBuffer(&pIndexBuffer->GetIndexBufferView());
+
     // 描画
-    pGraphicsCommandLists[usePipelineType]->Get()->DrawInstanced(pVertexBuffer->GetVertexCount(), 1, 0, 0);
+    pGraphicsCommandLists[usePipelineType]->Get()->DrawIndexedInstanced(pIndexBuffer->GetIndexCount(), 1, 0, 0, 0);
 }
 
 void glib::EndRender(const GLIB_PIPELINE_TYPE& usePipelineType)
@@ -350,6 +359,7 @@ void glib::Release()
     */
 
     SafeDelete(pTime);
+    SafeDelete(pIndexBuffer);
     SafeDelete(pVertexBuffer);
     for (int i = 0; i < SHADER_MAX; ++i)
     {

@@ -13,7 +13,7 @@ namespace glib
         ~GLibVertexBuffer() = default;
 
         // 頂点バッファの初期化
-        bool Initialize(ID3D12Device* device, const void* vertexData, size_t size, UINT vertexCount, UINT stride);
+        bool Initialize(ID3D12Device* device, const void* vertexData, UINT vertexCount, UINT stride);
 
         // 頂点バッファビューを取得
         D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView() { return m_VertexBufferView; }
