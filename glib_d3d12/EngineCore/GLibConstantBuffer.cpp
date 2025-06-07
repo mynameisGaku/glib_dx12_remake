@@ -2,6 +2,8 @@
 #include <GLibDescriptorPool.h>
 #include <GLibDevice.h>
 
+UINT glib::GLibConstantBuffer::m_sCurrentIndex = 0;
+
 glib::GLibConstantBuffer::~GLibConstantBuffer()
 {
     if (m_pMappedConstBuf)
@@ -57,7 +59,11 @@ bool glib::GLibConstantBuffer::Initialize(GLibDevice* device, GLibDescriptorPool
         glib::Logger::ErrorLog("Descriptor heap for constant buffer not found.");
         return false;
     }
+    m_Index = m_sCurrentIndex;
+    UINT heapSize = device->Get()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     m_hCbvHeap = descHeap->GetCPUDescriptorHandleForHeapStart();
+    m_hCbvHeap.ptr += m_Index * heapSize;
+
     glib::Logger::DebugLog("Descriptor heap for constant buffer obtained successfully.");
 
     D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
@@ -66,5 +72,6 @@ bool glib::GLibConstantBuffer::Initialize(GLibDevice* device, GLibDescriptorPool
     device->Get()->CreateConstantBufferView(&cbvDesc, m_hCbvHeap);
 
     glib::Logger::DebugLog("Constant buffer view created successfully.");
+    m_sCurrentIndex++;
     return true;
 }

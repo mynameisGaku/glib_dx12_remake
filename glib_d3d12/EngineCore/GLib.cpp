@@ -51,6 +51,7 @@ namespace glib
     glib::GLibVertexBuffer*             pVertexBuffer;
     glib::GLibIndexBuffer*              pIndexBuffer;
     glib::GLibConstantBuffer*           pConstantBuffer;
+    glib::GLibConstantBuffer*           pDiffuseCB;
 
 
     D3D12_VIEWPORT                      ViewPort;
@@ -62,6 +63,10 @@ namespace glib
         XMMATRIX Mat;
     };
 
+    struct CBUFFER_1
+    {
+        XMFLOAT4 Diffuse;
+    };
 }
 
 bool glib::Init()
@@ -76,6 +81,7 @@ bool glib::Init()
             pPipelines[i]            = new GLibPipeline;
             pGraphicsCommandLists[i] = new GLibGraphicsCommandList;
         }
+        pDiffuseCB                          = new GLibConstantBuffer;
         pConstantBuffer                     = new GLibConstantBuffer;
         pVertexBuffer                       = new GLibVertexBuffer;
         pIndexBuffer                        = new GLibIndexBuffer;
@@ -176,6 +182,7 @@ bool glib::Init()
             desc.NumDescriptors = 3000;
             desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
             desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+            desc.NodeMask = 0;
             pDescriptorPool->Allocate(GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, desc);
         }
 
@@ -209,13 +216,19 @@ bool glib::Init()
 
 
     // Initialize the RootSignature
-    D3D12_DESCRIPTOR_RANGE ranges[1] = {};
+    D3D12_DESCRIPTOR_RANGE ranges[2] = {};
     UINT b0 = 0;
     ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; // Constant Buffer View
     ranges[0].BaseShaderRegister = b0; // Base shader register for this range
     ranges[0].NumDescriptors = 1; // Number of descriptors in this range
     ranges[0].RegisterSpace = 0; // Register space for this range
     ranges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // Append to the end of the descriptor table
+    UINT b1 = 1;
+    ranges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; // Shader Resource View
+    ranges[1].BaseShaderRegister = b1; // Base shader register for this range
+    ranges[1].NumDescriptors = 1; // Number of descriptors in this range
+    ranges[1].RegisterSpace = 0; // Register space for this range
+    ranges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // Append to the end of the descriptor table
     D3D12_ROOT_PARAMETER rootParameters[1] = {};
     rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // Descriptor table type
     rootParameters[0].DescriptorTable.pDescriptorRanges = ranges; // Pointer to the descriptor ranges
@@ -365,6 +378,23 @@ bool glib::Init()
         return false;
     }
 
+    cbDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    cbDesc.Alignment = 0;
+    cbDesc.Width = 256; // Size of the constant buffer
+    cbDesc.Height = 1;
+    cbDesc.DepthOrArraySize = 1;
+    cbDesc.MipLevels = 1;
+    cbDesc.Format = DXGI_FORMAT_UNKNOWN; // No format for constant buffers
+    cbDesc.SampleDesc.Count = 1; // No multisampling
+    cbDesc.SampleDesc.Quality = 0;
+    cbDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR; // Row-major layout
+    cbDesc.Flags = D3D12_RESOURCE_FLAG_NONE; // No special flags for constant buffers
+    if (!pDiffuseCB->Initialize(pDevice, pDescriptorPool, cbDesc))
+    {
+        glib::Logger::ErrorLog("Failed to initialize diffuse constant buffer.");
+        return false;
+    }
+
 
     // Initialize the time management
     pTime->SetLevelLoaded();
@@ -387,6 +417,11 @@ void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
     XMMATRIX mat = world * view * proj;
 
     pConstantBuffer->GetMappedBuffer<CBUFFER_0>()->Mat = mat;
+
+    float col = cos(radian) * 0.5f + 0.5f;
+    XMFLOAT4 diffuse = { col, 0, 1, 1};
+    pDiffuseCB->GetMappedBuffer<CBUFFER_1>()->Diffuse = diffuse;
+
     // 描画受付開始 (DrawBegin内でRenderTargetのクリア・セット、バリアの設定を行っています。)
     pSwapChain->DrawBegin(pGraphicsCommandLists[usePipelineType]);
 
@@ -408,8 +443,9 @@ void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
 
     // 定数バッファセット
     auto cbvheap = pDescriptorPool->Get(GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    pGraphicsCommandLists[usePipelineType]->Get()->SetDescriptorHeaps(1, &cbvheap);
     auto hcbvheap = cbvheap->GetGPUDescriptorHandleForHeapStart();
+    auto cbvSize = pDevice->Get()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    pGraphicsCommandLists[usePipelineType]->Get()->SetDescriptorHeaps(1, &cbvheap);
     pGraphicsCommandLists[usePipelineType]->Get()->SetGraphicsRootDescriptorTable(0, hcbvheap);
 
     // インデックスセット
@@ -459,6 +495,7 @@ void glib::Release()
     */
 
     SafeDelete(pTime);
+    SafeDelete(pDiffuseCB);
     SafeDelete(pConstantBuffer);
     SafeDelete(pIndexBuffer);
     SafeDelete(pVertexBuffer);

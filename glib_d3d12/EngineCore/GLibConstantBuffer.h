@@ -13,7 +13,7 @@ namespace glib
     {
     public:
 
-        GLibConstantBuffer() {}
+        GLibConstantBuffer() : m_Index(0) {}
         ~GLibConstantBuffer();
         bool Initialize(GLibDevice* device, GLibDescriptorPool* pPool, const D3D12_RESOURCE_DESC& desc);
 
@@ -53,6 +53,10 @@ namespace glib
         }
 
     private:
+
+        static UINT m_sCurrentIndex;
+        UINT m_Index;
+
         void* m_pMappedConstBuf = nullptr;
         ComPtr<ID3D12Resource> m_ConstBuf = nullptr;
         ID3D12DescriptorHeap* m_pCbvHeap = nullptr;
