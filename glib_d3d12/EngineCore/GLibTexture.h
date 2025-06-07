@@ -3,8 +3,14 @@
 #include <GLibComPtr.h>
 #include <GLibLogger.h>
 
-class GLibTexture
+namespace glib
 {
-public:
+    class GLibTexture
+    {
+    public:
 
-};
+    private:
+        ComPtr<ID3D12Resource> m_TexcoordBuf;
+        D3D12_VERTEX_BUFFER_VIEW m_TexcoordBufView;
+    };
+}

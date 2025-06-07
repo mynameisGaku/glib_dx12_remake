@@ -16,6 +16,7 @@
 #include <GLibVertexBuffer.h>
 #include <GLibIndexBuffer.h>
 #include <GLibConstantBuffer.h>
+#include <GLibTexture.h>
 
 #include <windows.h>
 #include <Vendor/magic_enum/magic_enum.hpp>
@@ -49,6 +50,7 @@ namespace glib
 
     /* resources */
     glib::GLibVertexBuffer*             pVertexBuffer;
+    glib::GLibVertexBuffer*             pTextureVB;
     glib::GLibIndexBuffer*              pIndexBuffer;
     glib::GLibConstantBuffer*           pConstantBuffer;
     glib::GLibConstantBuffer*           pDiffuseCB;
@@ -83,6 +85,7 @@ bool glib::Init()
         }
         pDiffuseCB                          = new GLibConstantBuffer;
         pConstantBuffer                     = new GLibConstantBuffer;
+        pTextureVB                          = new GLibVertexBuffer;
         pVertexBuffer                       = new GLibVertexBuffer;
         pIndexBuffer                        = new GLibIndexBuffer;
         pDevice                             = new GLibDevice;
@@ -285,9 +288,10 @@ bool glib::Init()
 
 
     UINT slot0 = 0;
+    UINT slot1 = 1;
     D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        //{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 } あとで追加
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, slot0,  0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    slot1, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
     };
     D3D12_RASTERIZER_DESC rastDesc = {};
     rastDesc.FrontCounterClockwise = false;
@@ -348,6 +352,25 @@ bool glib::Init()
     pVertexBuffer->Initialize(pDevice->Get(), vertices, vertexCount, stride);
 
 
+
+    // Initialize the texture
+    float texcoords[] =
+    {
+        0.0f, 1.0f,
+        0.0f, 0.0f,
+        1.0f, 1.0f,
+        1.0f, 0.0f
+    };
+    UINT texcoordCount = _countof(texcoords) / 2;
+    stride = sizeof(float) * 2;
+    if (!pTextureVB->Initialize(pDevice->Get(), texcoords, texcoordCount, stride))
+    {
+        glib::Logger::ErrorLog("Failed to initialize texture constant buffer.");
+        return false;
+    }
+
+
+
     // Initialize the index buffer
     unsigned short indices[] =
     {
@@ -357,6 +380,7 @@ bool glib::Init()
     UINT indexxCount = _countof(indices);
     stride = sizeof(unsigned short);
     pIndexBuffer->Initialize(pDevice->Get(), indices, indexxCount, stride);
+
 
 
     // Initialize the constant buffer
@@ -396,6 +420,7 @@ bool glib::Init()
     }
 
 
+
     // Initialize the time management
     pTime->SetLevelLoaded();
 
@@ -408,19 +433,22 @@ bool glib::Init()
 
 void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
 {
-    static float radian = 0.0f;
-    radian += 1 * pTime->DeltaTime();
-    XMMATRIX world = XMMatrixRotationY(radian);
-    XMVECTOR eye = { 0, 0, -2.0f }, focus = { 0, 0, 0 }, up = { 0, 1, 0 };
-    XMMATRIX view = XMMatrixLookAtLH(eye, focus, up);
-    XMMATRIX proj = XMMatrixPerspectiveFovLH(XMConvertToRadians(60.0f), pWindow->GetAspect(), 0.1f, 100.0f);
-    XMMATRIX mat = world * view * proj;
+    // メインループ
+    {
+        static float radian = 0.0f;
+        radian += 1 * pTime->DeltaTime();
+        XMMATRIX world = XMMatrixRotationY(radian);
+        XMVECTOR eye = { 0, 0, -2.0f }, focus = { 0, 0, 0 }, up = { 0, 1, 0 };
+        XMMATRIX view = XMMatrixLookAtLH(eye, focus, up);
+        XMMATRIX proj = XMMatrixPerspectiveFovLH(XMConvertToRadians(60.0f), pWindow->GetAspect(), 0.1f, 100.0f);
+        XMMATRIX mat = world * view * proj;
 
-    pConstantBuffer->GetMappedBuffer<CBUFFER_0>()->Mat = mat;
+        pConstantBuffer->GetMappedBuffer<CBUFFER_0>()->Mat = mat;
 
-    float col = cos(radian) * 0.5f + 0.5f;
-    XMFLOAT4 diffuse = { col, 0, 1, 1};
-    pDiffuseCB->GetMappedBuffer<CBUFFER_1>()->Diffuse = diffuse;
+        float col = cos(radian) * 0.5f + 0.5f;
+        XMFLOAT4 diffuse = { col, 0, 1, 1 };
+        pDiffuseCB->GetMappedBuffer<CBUFFER_1>()->Diffuse = diffuse;
+    }
 
     // 描画受付開始 (DrawBegin内でRenderTargetのクリア・セット、バリアの設定を行っています。)
     pSwapChain->DrawBegin(pGraphicsCommandLists[usePipelineType]);
@@ -435,7 +463,8 @@ void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
     // 頂点セット
     D3D12_VERTEX_BUFFER_VIEW vertexBufferView[] =
     {
-        pVertexBuffer->GetVertexBufferView()
+        pVertexBuffer->GetVertexBufferView(),
+        pTextureVB->GetVertexBufferView()
     };
     UINT vertexBufferCount = _countof(vertexBufferView);
     pGraphicsCommandLists[usePipelineType]->Get()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -495,6 +524,7 @@ void glib::Release()
     */
 
     SafeDelete(pTime);
+    SafeDelete(pTextureVB);
     SafeDelete(pDiffuseCB);
     SafeDelete(pConstantBuffer);
     SafeDelete(pIndexBuffer);

@@ -1,6 +1,22 @@
 #include "Constant.hlsli"
 
-float4 main( float4 pos : POSITION ) : SV_POSITION
+struct VSInput
 {
-    return mul(Mat, pos);
+    float4 pos : POSITION;
+    float2 uv : TEXCOORD;
+};
+
+struct VSOutput
+{
+    float4 pos : SV_Position;
+    float2 uv : TEXCOORD;
+};
+
+VSOutput main(VSInput input)
+{
+    VSOutput output;
+    output.pos = mul(Mat, input.pos);
+    output.uv = input.uv;
+    
+    return output;
 }

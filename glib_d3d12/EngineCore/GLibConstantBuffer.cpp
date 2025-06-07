@@ -8,7 +8,6 @@ glib::GLibConstantBuffer::~GLibConstantBuffer()
 {
     if (m_pMappedConstBuf)
     {
-        m_ConstBuf->Unmap(0, nullptr);
         m_pMappedConstBuf = nullptr;
         glib::Logger::DebugLog("Constant buffer unmapped successfully.");
     }
@@ -51,6 +50,7 @@ bool glib::GLibConstantBuffer::Initialize(GLibDevice* device, GLibDescriptorPool
         glib::Logger::ErrorLog("Failed to map constant buffer.");
         return false;
     }
+    m_ConstBuf->Unmap(0, nullptr);
     glib::Logger::DebugLog("Constant buffer mapped successfully.");
 
     auto descHeap = pPool->Get(glib::GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
