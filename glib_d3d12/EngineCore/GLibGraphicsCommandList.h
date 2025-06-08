@@ -1,7 +1,13 @@
 #pragma once
 #include <d3d12.h>
+#include <unordered_map>
+#include <string>
+#include <Windows.h>
+
 #include <GLibComPtr.h>
 #include <GLibLogger.h>
+#include <GLibDevice.h>
+#include <GLibCommandAllocator.h>
 
 namespace glib
 {
@@ -11,7 +17,7 @@ namespace glib
         GLibGraphicsCommandList() {}
         ~GLibGraphicsCommandList();
 
-        void Initialize(ID3D12Device* device, ID3D12CommandAllocator* commandAllocator, const D3D12_COMMAND_LIST_TYPE& type);
+        void Initialize(GLibDevice* device, GLibCommandAllocator* commandAllocator, const D3D12_COMMAND_LIST_TYPE& type);
 
         ID3D12GraphicsCommandList* Get() const { return m_CommandList.Get(); }
     private:

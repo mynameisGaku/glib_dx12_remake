@@ -236,6 +236,7 @@
     <ClInclude Include="EngineCore\Vendor\nlohmann\ordered_map.hpp" />
     <ClInclude Include="EngineCore\Vendor\nlohmann\thirdparty\hedley\hedley.hpp" />
     <ClInclude Include="EngineCore\Vendor\nlohmann\thirdparty\hedley\hedley_undef.hpp" />
+    <ClInclude Include="EngineCore\Vendor\stbi\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\SpritePS.hlsl">

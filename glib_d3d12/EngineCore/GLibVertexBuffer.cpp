@@ -13,9 +13,9 @@ glib::GLibVertexBuffer::~GLibVertexBuffer()
     }
 }
 
-bool glib::GLibVertexBuffer::Initialize(ID3D12Device* device, const void* vertexData, UINT vertexCount, UINT stride)
+bool glib::GLibVertexBuffer::Initialize(GLibDevice* device, Vertex* vertices, UINT vertexCount, UINT stride)
 {
-    if (!device || !vertexData || vertexCount == 0 || stride == 0)
+    if (!device || vertexCount == 0 || stride == 0)
     {
         glib::Logger::ErrorLog("Invalid parameters for vertex buffer initialization.");
         return false;
@@ -46,7 +46,7 @@ bool glib::GLibVertexBuffer::Initialize(ID3D12Device* device, const void* vertex
     resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
     resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-    m_Hr = device->CreateCommittedResource(
+    m_Hr = device->Get()->CreateCommittedResource(
         &heapProperties,
         D3D12_HEAP_FLAG_NONE,
         &resourceDesc,
@@ -62,8 +62,8 @@ bool glib::GLibVertexBuffer::Initialize(ID3D12Device* device, const void* vertex
     }
 
     // 頂点データをアップロード
-    UINT8* mappedData;
-    m_Hr = m_VertexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&mappedData));
+    UINT8* pData = nullptr;
+    m_VertexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pData));
 
     if (FAILED(m_Hr))
     {
@@ -72,8 +72,7 @@ bool glib::GLibVertexBuffer::Initialize(ID3D12Device* device, const void* vertex
     }
 
     // 頂点データをコピー
-    memcpy(mappedData, vertexData, bufferSize);
-
+    memcpy(pData, vertices, bufferSize);
     m_VertexBuffer->Unmap(0, nullptr);
 
     // 頂点バッファビューを設定

@@ -12,7 +12,8 @@ glib::GLibDevice::~GLibDevice()
 
 bool glib::GLibDevice::Initialize(const D3D_FEATURE_LEVEL& level)
 {
-    m_Hr = D3D12CreateDevice(nullptr, level, IID_PPV_ARGS(m_Device.GetAddressOf()));
+    m_Level = level;
+    m_Hr = D3D12CreateDevice(nullptr, m_Level, IID_PPV_ARGS(m_Device.GetAddressOf()));
     if (SUCCEEDED(m_Hr))
     {
         glib::Logger::DebugLog("GLibDevice initialized successfully.");

@@ -25,7 +25,6 @@ glib::GLibSwapChain::~GLibSwapChain()
         m_SwapChain.Reset();
     }
     
-    m_BbvHeap.Release();
     glib::Logger::DebugLog("Swap chain resources released successfully.");
 
     m_pDevice = nullptr;
@@ -104,7 +103,7 @@ bool glib::GLibSwapChain::Initialize(GLibDevice* device, GLibCommandQueue* queue
 
     // バックバッファビューの入れ物であるDescriptorHeapを取得
     {
-        if (!m_BbvHeap.Initialize(m_pDescriptorPool, m_pDescriptorPool->Get(glib::GLIB_DESCRIPTOR_HEAP_TYPE_RTV)))
+        if (!m_BbvHeap.Initialize(m_pDescriptorPool, m_pDescriptorPool->Get(glib::GLIB_DESCRIPTOR_HEAP_TYPE_RTV)->Get()))
         {
             glib::Logger::FormatErrorLog("Failed to create RTV descriptor heap. HRESULT: 0x{%X}", m_Hr);
             return false;

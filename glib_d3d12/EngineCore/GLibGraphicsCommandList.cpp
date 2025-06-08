@@ -8,9 +8,9 @@ glib::GLibGraphicsCommandList::~GLibGraphicsCommandList()
     Logger::DebugLog("Graphics command list resources released successfully.");
 }
 
-void glib::GLibGraphicsCommandList::Initialize(ID3D12Device* device, ID3D12CommandAllocator* commandAllocator, const D3D12_COMMAND_LIST_TYPE& type)
+void glib::GLibGraphicsCommandList::Initialize(GLibDevice* device, GLibCommandAllocator* commandAllocator, const D3D12_COMMAND_LIST_TYPE& type)
 {
-    m_Hr = device->CreateCommandList(0, type, commandAllocator, nullptr, IID_PPV_ARGS(m_CommandList.GetAddressOf()));
+    m_Hr = device->Get()->CreateCommandList(0, type, commandAllocator->Get(), nullptr, IID_PPV_ARGS(m_CommandList.GetAddressOf()));
     if (FAILED(m_Hr))
     {
         Logger::FormatErrorLog("Failed to create graphics command list. HRESULT: 0x{:X}", m_Hr);

@@ -1,10 +1,22 @@
 #pragma once
 #include <d3d12.h>
+#include <DirectXMath.h>
+#include <Windows.h>
 #include <GLibComPtr.h>
 #include <GLibLogger.h>
+#include <GLibDevice.h>
+
+using namespace DirectX;
 
 namespace glib
 {
+    struct Vertex
+    {
+        XMFLOAT3 position;
+        XMFLOAT2 texcoord;
+    };
+
+
     class GLibVertexBuffer
     {
     public:
@@ -13,7 +25,7 @@ namespace glib
         ~GLibVertexBuffer();
 
         // 頂点バッファの初期化
-        bool Initialize(ID3D12Device* device, const void* vertexData, UINT vertexCount, UINT stride);
+        bool Initialize(GLibDevice* device, Vertex* vertices, UINT vertexCount, UINT stride);
 
         // 頂点バッファビューを取得
         D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView() { return m_VertexBufferView; }

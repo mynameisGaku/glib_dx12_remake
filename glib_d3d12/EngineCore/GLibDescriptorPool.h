@@ -1,22 +1,26 @@
 #pragma once
 #include <d3d12.h>
-#include <GLib.h>
-#include <GLibComPtr.h>
-#include <GLibLogger.h>
 #include <unordered_map>
 #include <string>
+#include <Windows.h>
+
+#include <GLib.h>
+#include <GLibComPtr.h>
+#include <GLibDescriptorHeap.h>
 
 namespace glib
 {
+    class GLibDevice;
+
     class GLibDescriptorPool
     {
     public:
         GLibDescriptorPool() = default;
         ~GLibDescriptorPool();
 
-        bool Initialize(ID3D12Device* device);
+        bool Initialize(GLibDevice* device);
 
-        ID3D12DescriptorHeap* Get(const GLIB_DESCRIPTOR_HEAP_TYPE& type) const;
+        GLibDescriptorHeap* Get(const GLIB_DESCRIPTOR_HEAP_TYPE& type) const;
         ID3D12DescriptorHeap* Allocate(const GLIB_DESCRIPTOR_HEAP_TYPE& type, const D3D12_DESCRIPTOR_HEAP_DESC& desc);
 
         void Free(const GLIB_DESCRIPTOR_HEAP_TYPE& type);
@@ -25,8 +29,8 @@ namespace glib
         void AllFree();
 
     private:
-        ID3D12Device* m_pDevice = nullptr;
-        std::unordered_map<GLIB_DESCRIPTOR_HEAP_TYPE, ComPtr<ID3D12DescriptorHeap>> m_DescriptorHeaps;
+        GLibDevice* m_pDevice = nullptr;
+        std::unordered_map<GLIB_DESCRIPTOR_HEAP_TYPE, GLibDescriptorHeap*> m_DescriptorHeaps;
         HRESULT m_Hr = {};
         int m_DescriptorSize = 0;
 

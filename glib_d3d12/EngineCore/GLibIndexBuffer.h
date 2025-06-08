@@ -1,7 +1,9 @@
 #pragma once
 #include <d3d12.h>
+#include <Windows.h>
 #include <GLibComPtr.h>
 #include <GLibLogger.h>
+#include <GLibDevice.h>
 
 namespace glib
 {
@@ -12,7 +14,7 @@ namespace glib
         ~GLibIndexBuffer();
 
         // インデックスバッファの初期化
-        bool Initialize(ID3D12Device* device, const void* indexData, UINT indexCount, UINT stride);
+        bool Initialize(GLibDevice* device, const void* indexData, UINT indexCount, UINT stride);
 
         // インデックスバッファビューを取得
         D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() { return m_IndexBufferView; }

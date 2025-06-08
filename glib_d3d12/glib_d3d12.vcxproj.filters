@@ -22,6 +22,9 @@
     <Filter Include="EngineCore\Vendor\nlohmann">
       <UniqueIdentifier>{68a2e9b4-2ffa-4a8c-817c-ae2d57a5a105}</UniqueIdentifier>
     </Filter>
+    <Filter Include="EngineCore\Vendor\stbi">
+      <UniqueIdentifier>{848c87f0-6c47-4eaa-8e62-f3697860a12f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Game\main.cpp">
@@ -292,6 +295,9 @@
     </ClInclude>
     <ClInclude Include="EngineCore\Vendor\magic_enum\magic_enum.hpp">
       <Filter>EngineCore\Vendor\magic_enum</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\Vendor\stbi\stb_image.h">
+      <Filter>EngineCore\Vendor\stbi</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

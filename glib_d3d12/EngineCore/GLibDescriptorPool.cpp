@@ -1,4 +1,8 @@
 #include "GLibDescriptorPool.h"
+#include <GLibLogger.h>
+#include <GLibDevice.h>
+#include <GLibComPtr.h>
+#include <GLibMemory.h>
 
 glib::GLibDescriptorPool::~GLibDescriptorPool()
 {
@@ -8,7 +12,7 @@ glib::GLibDescriptorPool::~GLibDescriptorPool()
     Logger::DebugLog("GLibDescriptorPool resources released successfully.");
 }
 
-bool glib::GLibDescriptorPool::Initialize(ID3D12Device* device)
+bool glib::GLibDescriptorPool::Initialize(GLibDevice* device)
 {
     m_pDevice = device;
     if (!m_pDevice)
@@ -20,12 +24,12 @@ bool glib::GLibDescriptorPool::Initialize(ID3D12Device* device)
     return true;
 }
 
-ID3D12DescriptorHeap* glib::GLibDescriptorPool::Get(const GLIB_DESCRIPTOR_HEAP_TYPE& type) const
+glib::GLibDescriptorHeap* glib::GLibDescriptorPool::Get(const GLIB_DESCRIPTOR_HEAP_TYPE& type) const
 {
     auto it = m_DescriptorHeaps.find(type);
     if (it != m_DescriptorHeaps.end())
     {
-        return it->second.Get();
+        return it->second;
     }
     Logger::ErrorLog("Descriptor heap with name '" + glib::EnumToString(type) + "' not found.");
     return nullptr;
@@ -39,15 +43,16 @@ ID3D12DescriptorHeap* glib::GLibDescriptorPool::Allocate(const GLIB_DESCRIPTOR_H
         return nullptr;
     }
     ComPtr<ID3D12DescriptorHeap> descriptorHeap;
-    m_Hr = m_pDevice->CreateDescriptorHeap(&desc, IID_PPV_ARGS(descriptorHeap.GetAddressOf()));
+    m_Hr = m_pDevice->Get()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(descriptorHeap.GetAddressOf()));
     if (FAILED(m_Hr))
     {
         Logger::ErrorLog("Failed to create descriptor heap: " + std::to_string(m_Hr));
         return nullptr;
     }
-    m_DescriptorHeaps[type] = descriptorHeap;
+    m_DescriptorHeaps[type] = new GLibDescriptorHeap();
+    m_DescriptorHeaps[type]->Initialize(m_pDevice, this, descriptorHeap.Get());
     Logger::DebugLog("Descriptor heap '" + glib::EnumToString(type) + "' created successfully.");
-    return m_DescriptorHeaps[type].Get();
+    return m_DescriptorHeaps[type]->Get();
 }
 
 void glib::GLibDescriptorPool::Free(const GLIB_DESCRIPTOR_HEAP_TYPE& type)
@@ -69,7 +74,7 @@ void glib::GLibDescriptorPool::Free(ID3D12DescriptorHeap* descriptorHeap)
     if (!descriptorHeap) return;
     for (auto it = m_DescriptorHeaps.begin(); it != m_DescriptorHeaps.end(); ++it)
     {
-        if (it->second.Get() == descriptorHeap)
+        if (it->second->Get() == descriptorHeap)
         {
             m_DescriptorHeaps.erase(it);
             Logger::DebugLog("Descriptor heap freed successfully.");
@@ -81,10 +86,17 @@ void glib::GLibDescriptorPool::Free(ID3D12DescriptorHeap* descriptorHeap)
 
 void glib::GLibDescriptorPool::AllFree()
 {
-    for (auto& pair : m_DescriptorHeaps)
+    for (auto it = m_DescriptorHeaps.begin(); it != m_DescriptorHeaps.end(); )
     {
-        pair.second.Reset();
+        if (it->second)
+        {
+            SafeDelete(it->second);
+            it = m_DescriptorHeaps.erase(it);
+        }
+        else
+        {
+            it++;
+        }
     }
-    m_DescriptorHeaps.clear();
     Logger::DebugLog("All descriptor heaps freed successfully.");
 }

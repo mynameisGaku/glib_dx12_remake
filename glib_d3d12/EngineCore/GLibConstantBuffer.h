@@ -1,19 +1,21 @@
 #pragma once
 #include <d3d12.h>
-#include <GLibComPtr.h>
-#include <GLibLogger.h>
-#include <GLibDevice.h>
-#include <GLibDescriptorPool.h>
 #include <Windows.h>
 #include <type_traits>
 
+#include <GLibComPtr.h>
+#include <GLibLogger.h>
+
 namespace glib
 {
+    class GLibDevice;
+    class GLibDescriptorPool;
+
     class GLibConstantBuffer
     {
     public:
 
-        GLibConstantBuffer() : m_Index(0) {}
+        GLibConstantBuffer() {}
         ~GLibConstantBuffer();
         bool Initialize(GLibDevice* device, GLibDescriptorPool* pPool, const D3D12_RESOURCE_DESC& desc);
 
@@ -30,20 +32,11 @@ namespace glib
             }
         }
 
-        ID3D12Resource* GetResource() const
-        {
-            return m_ConstBuf.Get();
-        }
+        ID3D12Resource* GetResource() const;
 
-        ID3D12DescriptorHeap* GetDescriptorHeap() const
-        {
-            return m_pCbvHeap;
-        }
+        ID3D12DescriptorHeap* GetDescriptorHeap() const;
 
-        D3D12_CPU_DESCRIPTOR_HANDLE GetDescriptorHandle() const
-        {
-            return m_hCbvHeap;
-        }
+        D3D12_CPU_DESCRIPTOR_HANDLE GetDescriptorHandle() const;
 
         template<typename T>
         T* GetMappedBuffer()
@@ -53,9 +46,6 @@ namespace glib
         }
 
     private:
-
-        static UINT m_sCurrentIndex;
-        UINT m_Index;
 
         void* m_pMappedConstBuf = nullptr;
         ComPtr<ID3D12Resource> m_ConstBuf = nullptr;

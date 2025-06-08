@@ -1,3 +1,10 @@
+
+#define STB_IMAGE_IMPLEMENTATION
+#include <Vendor/stbi/stb_image.h>
+#include <windows.h>
+#include <Vendor/magic_enum/magic_enum.hpp>
+#include <DirectXMath.h>
+
 #include <GLib.h>
 #include <GLibDevice.h>
 #include <GLibDebug.h>
@@ -18,15 +25,11 @@
 #include <GLibConstantBuffer.h>
 #include <GLibTexture.h>
 
-#include <windows.h>
-#include <Vendor/magic_enum/magic_enum.hpp>
-
-#include <DirectXMath.h>
-using namespace DirectX;
-
 /* pragma link */
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
+
+using namespace DirectX;
 
 namespace glib
 {
@@ -50,10 +53,10 @@ namespace glib
 
     /* resources */
     glib::GLibVertexBuffer*             pVertexBuffer;
-    glib::GLibVertexBuffer*             pTextureVB;
     glib::GLibIndexBuffer*              pIndexBuffer;
     glib::GLibConstantBuffer*           pConstantBuffer;
     glib::GLibConstantBuffer*           pDiffuseCB;
+    glib::GLibTexture*                  pTexture;
 
 
     D3D12_VIEWPORT                      ViewPort;
@@ -83,9 +86,9 @@ bool glib::Init()
             pPipelines[i]            = new GLibPipeline;
             pGraphicsCommandLists[i] = new GLibGraphicsCommandList;
         }
+        pTexture                            = new GLibTexture;
         pDiffuseCB                          = new GLibConstantBuffer;
         pConstantBuffer                     = new GLibConstantBuffer;
-        pTextureVB                          = new GLibVertexBuffer;
         pVertexBuffer                       = new GLibVertexBuffer;
         pIndexBuffer                        = new GLibIndexBuffer;
         pDevice                             = new GLibDevice;
@@ -143,18 +146,18 @@ bool glib::Init()
 
 
     // Initialize the command allocator
-    pCommandAllocator->Initialize(pDevice->Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
+    pCommandAllocator->Initialize(pDevice, D3D12_COMMAND_LIST_TYPE_DIRECT);
 
 
     // Initialize the command list
-    pGraphicsCommandLists[0]->Initialize(pDevice->Get(), pCommandAllocator->Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
+    pGraphicsCommandLists[0]->Initialize(pDevice, pCommandAllocator, D3D12_COMMAND_LIST_TYPE_DIRECT);
 
 
     // Initialize the command queue
     D3D12_COMMAND_QUEUE_DESC cmdQueueDesc = {};
     cmdQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
     cmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-    pCommandQueue->Initialize(pDevice->Get(), cmdQueueDesc);
+    pCommandQueue->Initialize(pDevice, cmdQueueDesc);
 
 
     // Initialize the fence
@@ -162,7 +165,7 @@ bool glib::Init()
 
 
     // Initialize the descriptor pool
-    if (!pDescriptorPool->Initialize(pDevice->Get()))
+    if (!pDescriptorPool->Initialize(pDevice))
     {
         glib::Logger::ErrorLog("Failed to initialize descriptor pool.");
         return false;
@@ -219,7 +222,7 @@ bool glib::Init()
 
 
     // Initialize the RootSignature
-    D3D12_DESCRIPTOR_RANGE ranges[2] = {};
+    D3D12_DESCRIPTOR_RANGE ranges[3] = {};
     UINT b0 = 0;
     ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; // Constant Buffer View
     ranges[0].BaseShaderRegister = b0; // Base shader register for this range
@@ -232,17 +235,33 @@ bool glib::Init()
     ranges[1].NumDescriptors = 1; // Number of descriptors in this range
     ranges[1].RegisterSpace = 0; // Register space for this range
     ranges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // Append to the end of the descriptor table
+    UINT t0 = 0;
+    ranges[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+    ranges[2].BaseShaderRegister = t0;
+    ranges[2].NumDescriptors = 1;
+    ranges[2].RegisterSpace = 0;
+    ranges[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
     D3D12_ROOT_PARAMETER rootParameters[1] = {};
     rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // Descriptor table type
     rootParameters[0].DescriptorTable.pDescriptorRanges = ranges; // Pointer to the descriptor ranges
     rootParameters[0].DescriptorTable.NumDescriptorRanges = _countof(ranges); // Number of descriptor ranges
     rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL; // Shader visibility for this root parameter
+    D3D12_STATIC_SAMPLER_DESC samplerDesc[1] = {};
+    samplerDesc[0].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+    samplerDesc[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    samplerDesc[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    samplerDesc[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    samplerDesc[0].BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+    samplerDesc[0].MaxLOD = D3D12_FLOAT32_MAX;
+    samplerDesc[0].MinLOD = 0.0f;
+    samplerDesc[0].ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+    samplerDesc[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
     D3D12_ROOT_SIGNATURE_DESC rootSigDesc = {};
     rootSigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
     rootSigDesc.pParameters = rootParameters;
-    rootSigDesc.NumParameters = _countof(rootParameters); // Number of root parameters
-    rootSigDesc.NumStaticSamplers = 0; // No static samplers for now
-    rootSigDesc.pStaticSamplers = nullptr;
+    rootSigDesc.NumParameters = _countof(rootParameters);
+    rootSigDesc.pStaticSamplers = samplerDesc;
+    rootSigDesc.NumStaticSamplers = _countof(samplerDesc);
 
     ID3DBlob* blob;
     HRESULT hr = D3D12SerializeRootSignature(
@@ -286,12 +305,9 @@ bool glib::Init()
     glib::GLibBinaryLoader ps("x64/Release/SpritePS.cso");
 #endif
 
-
-    UINT slot0 = 0;
-    UINT slot1 = 1;
     D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, slot0,  0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    slot1, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
     };
     D3D12_RASTERIZER_DESC rastDesc = {};
     rastDesc.FrontCounterClockwise = false;
@@ -308,7 +324,7 @@ bool glib::Init()
     D3D12_BLEND_DESC blendDesc = {};
     blendDesc.AlphaToCoverageEnable = false;
     blendDesc.IndependentBlendEnable = false;
-    blendDesc.RenderTarget[0].BlendEnable = false;
+    blendDesc.RenderTarget[0].BlendEnable = true;
     blendDesc.RenderTarget[0].LogicOpEnable = false;
     blendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
     blendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
@@ -337,37 +353,20 @@ bool glib::Init()
     psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; // Primitive topology type
     psoDesc.NumRenderTargets = 1; // Number of render targets
     psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; // Render target format
-    pPipelines[0]->Initialize(pDevice->Get(), psoDesc);
+    pPipelines[0]->Initialize(pDevice, psoDesc);
 
 
     // Initialize the vertex buffer
-    float vertices[] = {
-        -0.5f, -0.5f, 0.0f,
-        -0.5f, 0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        0.5f, 0.5f, 0.0f
-    };
-    UINT vertexCount = _countof(vertices) / 3;
-    UINT stride = sizeof(float) * 3;
-    pVertexBuffer->Initialize(pDevice->Get(), vertices, vertexCount, stride);
-
-
-
-    // Initialize the texture
-    float texcoords[] =
+    Vertex vertices[] =
     {
-        0.0f, 1.0f,
-        0.0f, 0.0f,
-        1.0f, 1.0f,
-        1.0f, 0.0f
+        { {-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f} },
+        { {-0.5f,  0.5f, 0.0f}, {0.0f, 1.0f} },
+        { { 0.5f, -0.5f, 0.0f}, {1.0f, 0.0f} },
+        { { 0.5f,  0.5f, 0.0f}, {1.0f, 1.0f} }
     };
-    UINT texcoordCount = _countof(texcoords) / 2;
-    stride = sizeof(float) * 2;
-    if (!pTextureVB->Initialize(pDevice->Get(), texcoords, texcoordCount, stride))
-    {
-        glib::Logger::ErrorLog("Failed to initialize texture constant buffer.");
-        return false;
-    }
+
+    pVertexBuffer->Initialize(pDevice, vertices, _countof(vertices), sizeof(Vertex));
+
 
 
 
@@ -378,8 +377,8 @@ bool glib::Init()
         2, 1, 3
     };
     UINT indexxCount = _countof(indices);
-    stride = sizeof(unsigned short);
-    pIndexBuffer->Initialize(pDevice->Get(), indices, indexxCount, stride);
+    UINT stride = sizeof(unsigned short);
+    pIndexBuffer->Initialize(pDevice, indices, indexxCount, stride);
 
 
 
@@ -420,9 +419,16 @@ bool glib::Init()
     }
 
 
+    if (!pTexture->Initialize(pDevice, pDescriptorPool, "Resources/Images/penguin1.png"))
+    {
+        glib::Logger::ErrorLog("Failed to initialize texture buffer.");
+        return false;
+    }
+
 
     // Initialize the time management
     pTime->SetLevelLoaded();
+    glib::Logger::DebugLog("Time initialized successfully.");
 
 
     glib::Logger::DebugLog("GLib initialized successfully.");
@@ -433,6 +439,7 @@ bool glib::Init()
 
 void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
 {
+    glib::Logger::FormatDebugLog("DeltaTime = %.5f.", pTime->DeltaTime());
     // メインループ
     {
         static float radian = 0.0f;
@@ -446,7 +453,7 @@ void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
         pConstantBuffer->GetMappedBuffer<CBUFFER_0>()->Mat = mat;
 
         float col = cos(radian) * 0.5f + 0.5f;
-        XMFLOAT4 diffuse = { col, 0, 1, 1 };
+        XMFLOAT4 diffuse = { col, 1, 0, 1 };
         pDiffuseCB->GetMappedBuffer<CBUFFER_1>()->Diffuse = diffuse;
     }
 
@@ -461,21 +468,16 @@ void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
     pGraphicsCommandLists[usePipelineType]->Get()->SetGraphicsRootSignature(pCurrentPipeline->GetRootSignature());
 
     // 頂点セット
-    D3D12_VERTEX_BUFFER_VIEW vertexBufferView[] =
-    {
-        pVertexBuffer->GetVertexBufferView(),
-        pTextureVB->GetVertexBufferView()
-    };
-    UINT vertexBufferCount = _countof(vertexBufferView);
     pGraphicsCommandLists[usePipelineType]->Get()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    pGraphicsCommandLists[usePipelineType]->Get()->IASetVertexBuffers(0, vertexBufferCount, vertexBufferView);
+    pGraphicsCommandLists[usePipelineType]->Get()->IASetVertexBuffers(0, 1, &pVertexBuffer->GetVertexBufferView());
+
 
     // 定数バッファセット
-    auto cbvheap = pDescriptorPool->Get(GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    auto hcbvheap = cbvheap->GetGPUDescriptorHandleForHeapStart();
-    auto cbvSize = pDevice->Get()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    pGraphicsCommandLists[usePipelineType]->Get()->SetDescriptorHeaps(1, &cbvheap);
-    pGraphicsCommandLists[usePipelineType]->Get()->SetGraphicsRootDescriptorTable(0, hcbvheap);
+    auto resheap = pDescriptorPool->Get(GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->Get();
+    auto hresheap = resheap->GetGPUDescriptorHandleForHeapStart();
+    auto resSize = pDevice->Get()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    pGraphicsCommandLists[usePipelineType]->Get()->SetDescriptorHeaps(1, &resheap);
+    pGraphicsCommandLists[usePipelineType]->Get()->SetGraphicsRootDescriptorTable(0, hresheap);
 
     // インデックスセット
     pGraphicsCommandLists[usePipelineType]->Get()->IASetIndexBuffer(&pIndexBuffer->GetIndexBufferView());
@@ -524,7 +526,7 @@ void glib::Release()
     */
 
     SafeDelete(pTime);
-    SafeDelete(pTextureVB);
+    SafeDelete(pTexture);
     SafeDelete(pDiffuseCB);
     SafeDelete(pConstantBuffer);
     SafeDelete(pIndexBuffer);

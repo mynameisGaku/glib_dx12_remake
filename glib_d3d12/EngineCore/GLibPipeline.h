@@ -1,7 +1,9 @@
 #pragma once
 #include <d3d12.h>
+#include <Windows.h>
 #include <GLibComPtr.h>
 #include <GLibLogger.h>
+#include <GLibDevice.h>
 
 namespace glib
 {
@@ -13,7 +15,7 @@ namespace glib
         ~GLibPipeline();
 
         // パイプラインステートの初期化
-        bool Initialize(ID3D12Device* device, const D3D12_GRAPHICS_PIPELINE_STATE_DESC& psoDesc);
+        bool Initialize(GLibDevice* device, const D3D12_GRAPHICS_PIPELINE_STATE_DESC& psoDesc);
 
         // パイプラインステートを取得
         ID3D12PipelineState* Get() const { return m_PipelineState.Get(); }

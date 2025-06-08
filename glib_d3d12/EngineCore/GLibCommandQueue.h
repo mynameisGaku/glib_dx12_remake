@@ -1,7 +1,9 @@
 #pragma once
 #include <d3d12.h>
+#include <Windows.h>
 #include <GLibComPtr.h>
 #include <GLibLogger.h>
+#include <GLibDevice.h>
 
 namespace glib
 {
@@ -11,7 +13,7 @@ namespace glib
         GLibCommandQueue() {}
         ~GLibCommandQueue();
 
-        bool Initialize(ID3D12Device* device, const D3D12_COMMAND_QUEUE_DESC& desc);
+        bool Initialize(GLibDevice* device, const D3D12_COMMAND_QUEUE_DESC& desc);
 
         ID3D12CommandQueue* Get() const { return m_CommandQueue.Get(); }
 

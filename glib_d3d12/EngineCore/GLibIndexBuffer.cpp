@@ -13,7 +13,7 @@ glib::GLibIndexBuffer::~GLibIndexBuffer()
     }
 }
 
-bool glib::GLibIndexBuffer::Initialize(ID3D12Device* device, const void* indexData, UINT indexCount, UINT stride)
+bool glib::GLibIndexBuffer::Initialize(GLibDevice* device, const void* indexData, UINT indexCount, UINT stride)
 {
     if (!device || !indexData) 
     {
@@ -41,7 +41,7 @@ bool glib::GLibIndexBuffer::Initialize(ID3D12Device* device, const void* indexDa
     resourceDesc.SampleDesc.Count = 1;
     resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
     resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-    m_Hr = device->CreateCommittedResource(
+    m_Hr = device->Get()->CreateCommittedResource(
         &heapProperties,
         D3D12_HEAP_FLAG_NONE,
         &resourceDesc,

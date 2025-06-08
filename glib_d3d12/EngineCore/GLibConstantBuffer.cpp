@@ -1,8 +1,11 @@
 #include <GLibConstantBuffer.h>
 #include <GLibDescriptorPool.h>
+#include <GLibDescriptorHeap.h>
 #include <GLibDevice.h>
-
-UINT glib::GLibConstantBuffer::m_sCurrentIndex = 0;
+#include <GLib.h>
+#include <Windows.h>
+#include <winerror.h>
+#include <combaseapi.h>
 
 glib::GLibConstantBuffer::~GLibConstantBuffer()
 {
@@ -53,16 +56,16 @@ bool glib::GLibConstantBuffer::Initialize(GLibDevice* device, GLibDescriptorPool
     m_ConstBuf->Unmap(0, nullptr);
     glib::Logger::DebugLog("Constant buffer mapped successfully.");
 
-    auto descHeap = pPool->Get(glib::GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    GLibDescriptorHeap* descHeap = pPool->Get(glib::GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     if (!descHeap)
     {
         glib::Logger::ErrorLog("Descriptor heap for constant buffer not found.");
         return false;
     }
-    m_Index = m_sCurrentIndex;
-    UINT heapSize = device->Get()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    m_hCbvHeap = descHeap->GetCPUDescriptorHandleForHeapStart();
-    m_hCbvHeap.ptr += m_Index * heapSize;
+    UINT increment = descHeap->GetIncrementSize();
+    m_hCbvHeap = descHeap->Get()->GetCPUDescriptorHandleForHeapStart();
+    m_hCbvHeap.ptr += increment;
+    descHeap->AddIndex();
 
     glib::Logger::DebugLog("Descriptor heap for constant buffer obtained successfully.");
 
@@ -72,6 +75,20 @@ bool glib::GLibConstantBuffer::Initialize(GLibDevice* device, GLibDescriptorPool
     device->Get()->CreateConstantBufferView(&cbvDesc, m_hCbvHeap);
 
     glib::Logger::DebugLog("Constant buffer view created successfully.");
-    m_sCurrentIndex++;
     return true;
+}
+
+ID3D12Resource* glib::GLibConstantBuffer::GetResource() const
+{
+    return m_ConstBuf.Get();
+}
+
+ID3D12DescriptorHeap* glib::GLibConstantBuffer::GetDescriptorHeap() const
+{
+    return m_pCbvHeap;
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE glib::GLibConstantBuffer::GetDescriptorHandle() const
+{
+    return m_hCbvHeap;
 }
