@@ -62,6 +62,7 @@ bool glib::GLibConstantBuffer::Initialize(GLibDevice* device, GLibDescriptorPool
         glib::Logger::ErrorLog("Descriptor heap for constant buffer not found.");
         return false;
     }
+    m_pCbvHeap = descHeap->Get();
     UINT increment = descHeap->GetIncrementSize();
     m_hCbvHeap = descHeap->Get()->GetCPUDescriptorHandleForHeapStart();
     m_hCbvHeap.ptr += increment;

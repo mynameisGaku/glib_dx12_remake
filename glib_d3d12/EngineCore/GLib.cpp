@@ -55,7 +55,7 @@ namespace glib
     /* resources */
     glib::GLibIndexBuffer*              pIndexBuffer;
     glib::GLibVertexBuffer*             pVertexBuffer;
-    glib::GLibImage*                    pImage;
+    glib::GLibImage*                    pImage[2];
 
 
     D3D12_VIEWPORT                      ViewPort;
@@ -85,7 +85,8 @@ bool glib::Init()
             pPipelines[i]            = new GLibPipeline;
             pGraphicsCommandLists[i] = new GLibGraphicsCommandList;
         }
-        pImage                              = new GLibImage;
+        pImage[0]                              = new GLibImage;
+        pImage[1]                              = new GLibImage;
         pVertexBuffer                       = new GLibVertexBuffer;
         pIndexBuffer                        = new GLibIndexBuffer;
         pDevice                             = new GLibDevice;
@@ -380,7 +381,12 @@ bool glib::Init()
 
 
     // Initialize the constant buffer
-    if (pImage->Initialize(pDevice, pDescriptorPool, pGraphicsCommandLists[0], "Resources/Images/penguin1.png"))
+    if (not pImage[0]->Initialize(pDevice, pDescriptorPool, pGraphicsCommandLists[0], "Resources/Images/penguin1.png"))
+    {
+        glib::Logger::ErrorLog("pImage is initialize failed.");
+    }
+    
+    if (not pImage[1]->Initialize(pDevice, pDescriptorPool, pGraphicsCommandLists[0], "Resources/Images/stamina_desc.png"))
     {
         glib::Logger::ErrorLog("pImage is initialize failed.");
     }
@@ -403,18 +409,26 @@ void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
     // メインループ
     {
         static float radian = 0.0f;
-        radian += 1 * pTime->DeltaTime();
-        XMMATRIX world = XMMatrixRotationY(radian);
-        XMVECTOR eye = { 0, 0, -2.0f }, focus = { 0, 0, 0 }, up = { 0, 1, 0 };
+        float radius = 0.4f;
+        radian += 1.0f * pTime->DeltaTime();
+
+        XMVECTOR eye = { 0, 0, -2 };
+        XMVECTOR focus = { 0, 0, 0 };
+        XMVECTOR up = { 0, 1, 0 };
         XMMATRIX view = XMMatrixLookAtLH(eye, focus, up);
-        XMMATRIX proj = XMMatrixPerspectiveFovLH(XMConvertToRadians(60.0f), pWindow->GetAspect(), 0.1f, 100.0f);
-        XMMATRIX mat = world * view * proj;
+        XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, pWindow->GetAspect(), 0.01f, 10.0f);
 
-        pImage->GetPositionBuffer()->GetMappedBuffer<CBUFFER_0>()->Mat = mat;
+        XMMATRIX world = XMMatrixScaling(2.0f, 3.0f, 1.0f) * XMMatrixTranslation(-sin(radian) * radius, 0.0f, -cos(radian) * radius);
+        auto& mat1 = pImage[0]->GetPositionBuffer()->GetMappedBuffer<CBUFFER_0>()->Mat;
+        mat1 = world * view * proj;
+        auto& dif1 = pImage[0]->GetDiffuseBuffer()->GetMappedBuffer<CBUFFER_1>()->Diffuse;
+        dif1 = { 0.0f, 0.0f, 1.0f, 1.0f };
 
-        float col = cos(radian) * 0.5f + 0.5f;
-        XMFLOAT4 diffuse = { col, 1, 0, 1 };
-        pImage->GetDiffuseBuffer()->GetMappedBuffer<CBUFFER_1>()->Diffuse = diffuse;
+        world = XMMatrixScaling(1.0f, 2.0f, 1.0f) * XMMatrixRotationAxis({ 1, 0, 1 }, radian) * XMMatrixTranslation(sin(radian) * radius, 0.0f, cos(radian) * radius);
+        auto& mat2 = pImage[1]->GetPositionBuffer()->GetMappedBuffer<CBUFFER_0>()->Mat;
+        mat2 = world * view * proj;
+        auto& dif2 = pImage[1]->GetDiffuseBuffer()->GetMappedBuffer<CBUFFER_1>()->Diffuse;
+        dif2 = { 1.0f, 0.0f, 0.0f, 1.0f };
     }
 
     // 描画受付開始 (DrawBegin内でRenderTargetのクリア・セット、バリアの設定を行っています。)
@@ -433,7 +447,8 @@ void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
     // インデックスセット
     pGraphicsCommandLists[usePipelineType]->Get()->IASetIndexBuffer(&pIndexBuffer->GetIndexBufferView());
 
-    pImage->Draw();
+    //pImage[0]->Draw();
+    pImage[1]->Draw();
 
 }
 
@@ -477,7 +492,8 @@ void glib::Release()
     */
 
     SafeDelete(pTime);
-    SafeDelete(pImage);
+    SafeDelete(pImage[0]);
+    SafeDelete(pImage[1]);
     SafeDelete(pIndexBuffer);
     SafeDelete(pVertexBuffer);
     for (int i = 0; i < SHADER_MAX; ++i)

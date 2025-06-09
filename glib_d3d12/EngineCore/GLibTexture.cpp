@@ -75,7 +75,10 @@ bool glib::GLibTexture::Initialize(GLibDevice* device, GLibDescriptorPool* pPool
     srvDesc.Texture2D.MipLevels = 1;
     device->Get()->CreateShaderResourceView(m_TextureBuf.Get(), &srvDesc, hCbvHeap);
 
-    glib::Logger::FormatInfoLog("Texture load successfully. file: %s, byte: %d", filepath.c_str(), bytePerPixel);
+    m_TexWidth = static_cast<float>(width);
+    m_TexHeight = static_cast<float>(height);
+
+    glib::Logger::FormatInfoLog("Texture load successfully. file: %s, %d bytes", filepath.c_str(), (bytePerPixel * width * height));
 
     return true;
 }
