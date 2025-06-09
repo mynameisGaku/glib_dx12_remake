@@ -146,10 +146,8 @@ bool glib::Init()
     // Initialize the command allocator
     pCommandAllocator->Initialize(pDevice, D3D12_COMMAND_LIST_TYPE_DIRECT);
 
-
     // Initialize the command list
     pGraphicsCommandLists[0]->Initialize(pDevice, pCommandAllocator, D3D12_COMMAND_LIST_TYPE_DIRECT);
-
 
     // Initialize the command queue
     D3D12_COMMAND_QUEUE_DESC cmdQueueDesc = {};
@@ -447,7 +445,7 @@ void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
     // インデックスセット
     pGraphicsCommandLists[usePipelineType]->Get()->IASetIndexBuffer(&pIndexBuffer->GetIndexBufferView());
 
-    //pImage[0]->Draw();
+    pImage[0]->Draw();
     pImage[1]->Draw();
 
 }

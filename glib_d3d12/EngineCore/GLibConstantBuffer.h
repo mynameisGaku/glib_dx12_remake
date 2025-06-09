@@ -42,7 +42,8 @@ namespace glib
         T* GetMappedBuffer()
         {
             static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
-            return reinterpret_cast<T*>(m_pMappedConstBuf);
+            auto ret = reinterpret_cast<T*>(m_pMappedConstBuf);;
+            return ret;
         }
 
     private:

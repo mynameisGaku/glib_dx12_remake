@@ -29,17 +29,17 @@ namespace glib
         GLibTexture* GetTextureBuffer() const { return m_pTextureBuf; }
 
     private:
-        GLibDevice* m_pDevice;
-        GLibGraphicsCommandList* m_pCmdList;
-        GLibDescriptorPool* m_pDescriptorPool;
-        D3D12_CPU_DESCRIPTOR_HANDLE m_hPositionHeap;
-        UINT m_PositionHeapIndex;
-        D3D12_CPU_DESCRIPTOR_HANDLE m_hDiffuseHeap;
-        UINT m_DiffuseHeapIndex;
-        D3D12_CPU_DESCRIPTOR_HANDLE m_hTextureHeap;
-        UINT m_TextureHeapIndex;
-        GLibConstantBuffer* m_pPositionBuf;
-        GLibConstantBuffer* m_pDiffuseBuf;
-        GLibTexture* m_pTextureBuf;
+        GLibDevice*                     m_pDevice           = nullptr;
+        GLibGraphicsCommandList*        m_pCmdList          = nullptr;
+        GLibDescriptorPool*             m_pDescriptorPool   = nullptr;
+        D3D12_CPU_DESCRIPTOR_HANDLE     m_hPositionHeap     {};
+        UINT                            m_PositionHeapIndex {};
+        D3D12_CPU_DESCRIPTOR_HANDLE     m_hDiffuseHeap      {};
+        UINT                            m_DiffuseHeapIndex  {};
+        D3D12_CPU_DESCRIPTOR_HANDLE     m_hTextureHeap      {};
+        UINT                            m_TextureHeapIndex  {};
+        GLibConstantBuffer*             m_pPositionBuf      = nullptr;
+        GLibConstantBuffer*             m_pDiffuseBuf       = nullptr;
+        GLibTexture*                    m_pTextureBuf       = nullptr;
     };
 }
