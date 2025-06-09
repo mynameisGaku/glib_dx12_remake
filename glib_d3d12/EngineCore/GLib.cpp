@@ -24,6 +24,7 @@
 #include <GLibIndexBuffer.h>
 #include <GLibConstantBuffer.h>
 #include <GLibTexture.h>
+#include <GLibImage.h>
 
 /* pragma link */
 #pragma comment(lib, "d3d12.lib")
@@ -52,11 +53,9 @@ namespace glib
     glib::GLibWindow*                   pWindow;
 
     /* resources */
-    glib::GLibVertexBuffer*             pVertexBuffer;
     glib::GLibIndexBuffer*              pIndexBuffer;
-    glib::GLibConstantBuffer*           pConstantBuffer;
-    glib::GLibConstantBuffer*           pDiffuseCB;
-    glib::GLibTexture*                  pTexture;
+    glib::GLibVertexBuffer*             pVertexBuffer;
+    glib::GLibImage*                    pImage;
 
 
     D3D12_VIEWPORT                      ViewPort;
@@ -86,9 +85,7 @@ bool glib::Init()
             pPipelines[i]            = new GLibPipeline;
             pGraphicsCommandLists[i] = new GLibGraphicsCommandList;
         }
-        pTexture                            = new GLibTexture;
-        pDiffuseCB                          = new GLibConstantBuffer;
-        pConstantBuffer                     = new GLibConstantBuffer;
+        pImage                              = new GLibImage;
         pVertexBuffer                       = new GLibVertexBuffer;
         pIndexBuffer                        = new GLibIndexBuffer;
         pDevice                             = new GLibDevice;
@@ -383,46 +380,9 @@ bool glib::Init()
 
 
     // Initialize the constant buffer
-    D3D12_RESOURCE_DESC cbDesc = {};
-    cbDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    cbDesc.Alignment = 0;
-    cbDesc.Width = 256; // Size of the constant buffer
-    cbDesc.Height = 1;
-    cbDesc.DepthOrArraySize = 1;
-    cbDesc.MipLevels = 1;
-    cbDesc.Format = DXGI_FORMAT_UNKNOWN; // No format for constant buffers
-    cbDesc.SampleDesc.Count = 1; // No multisampling
-    cbDesc.SampleDesc.Quality = 0;
-    cbDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR; // Row-major layout
-    cbDesc.Flags = D3D12_RESOURCE_FLAG_NONE; // No special flags for constant buffers
-    if (!pConstantBuffer->Initialize(pDevice, pDescriptorPool, cbDesc))
+    if (pImage->Initialize(pDevice, pDescriptorPool, pGraphicsCommandLists[0], "Resources/Images/penguin1.png"))
     {
-        glib::Logger::ErrorLog("Failed to initialize constant buffer.");
-        return false;
-    }
-
-    cbDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    cbDesc.Alignment = 0;
-    cbDesc.Width = 256; // Size of the constant buffer
-    cbDesc.Height = 1;
-    cbDesc.DepthOrArraySize = 1;
-    cbDesc.MipLevels = 1;
-    cbDesc.Format = DXGI_FORMAT_UNKNOWN; // No format for constant buffers
-    cbDesc.SampleDesc.Count = 1; // No multisampling
-    cbDesc.SampleDesc.Quality = 0;
-    cbDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR; // Row-major layout
-    cbDesc.Flags = D3D12_RESOURCE_FLAG_NONE; // No special flags for constant buffers
-    if (!pDiffuseCB->Initialize(pDevice, pDescriptorPool, cbDesc))
-    {
-        glib::Logger::ErrorLog("Failed to initialize diffuse constant buffer.");
-        return false;
-    }
-
-
-    if (!pTexture->Initialize(pDevice, pDescriptorPool, "Resources/Images/penguin1.png"))
-    {
-        glib::Logger::ErrorLog("Failed to initialize texture buffer.");
-        return false;
+        glib::Logger::ErrorLog("pImage is initialize failed.");
     }
 
 
@@ -439,7 +399,7 @@ bool glib::Init()
 
 void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
 {
-    glib::Logger::FormatDebugLog("DeltaTime = %.5f.", pTime->DeltaTime());
+    glib::Logger::FormatDebugLog("DeltaTime = %.5fms", pTime->DeltaTime());
     // メインループ
     {
         static float radian = 0.0f;
@@ -450,11 +410,11 @@ void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
         XMMATRIX proj = XMMatrixPerspectiveFovLH(XMConvertToRadians(60.0f), pWindow->GetAspect(), 0.1f, 100.0f);
         XMMATRIX mat = world * view * proj;
 
-        pConstantBuffer->GetMappedBuffer<CBUFFER_0>()->Mat = mat;
+        pImage->GetPositionBuffer()->GetMappedBuffer<CBUFFER_0>()->Mat = mat;
 
         float col = cos(radian) * 0.5f + 0.5f;
         XMFLOAT4 diffuse = { col, 1, 0, 1 };
-        pDiffuseCB->GetMappedBuffer<CBUFFER_1>()->Diffuse = diffuse;
+        pImage->GetDiffuseBuffer()->GetMappedBuffer<CBUFFER_1>()->Diffuse = diffuse;
     }
 
     // 描画受付開始 (DrawBegin内でRenderTargetのクリア・セット、バリアの設定を行っています。)
@@ -470,20 +430,11 @@ void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
     // 頂点セット
     pGraphicsCommandLists[usePipelineType]->Get()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     pGraphicsCommandLists[usePipelineType]->Get()->IASetVertexBuffers(0, 1, &pVertexBuffer->GetVertexBufferView());
-
-
-    // 定数バッファセット
-    auto resheap = pDescriptorPool->Get(GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->Get();
-    auto hresheap = resheap->GetGPUDescriptorHandleForHeapStart();
-    auto resSize = pDevice->Get()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    pGraphicsCommandLists[usePipelineType]->Get()->SetDescriptorHeaps(1, &resheap);
-    pGraphicsCommandLists[usePipelineType]->Get()->SetGraphicsRootDescriptorTable(0, hresheap);
-
     // インデックスセット
     pGraphicsCommandLists[usePipelineType]->Get()->IASetIndexBuffer(&pIndexBuffer->GetIndexBufferView());
 
-    // 描画
-    pGraphicsCommandLists[usePipelineType]->Get()->DrawIndexedInstanced(pIndexBuffer->GetIndexCount(), 1, 0, 0, 0);
+    pImage->Draw();
+
 }
 
 void glib::EndRender(const GLIB_PIPELINE_TYPE& usePipelineType)
@@ -526,9 +477,7 @@ void glib::Release()
     */
 
     SafeDelete(pTime);
-    SafeDelete(pTexture);
-    SafeDelete(pDiffuseCB);
-    SafeDelete(pConstantBuffer);
+    SafeDelete(pImage);
     SafeDelete(pIndexBuffer);
     SafeDelete(pVertexBuffer);
     for (int i = 0; i < SHADER_MAX; ++i)

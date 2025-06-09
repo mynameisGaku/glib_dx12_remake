@@ -81,6 +81,9 @@
     <ClCompile Include="EngineCore\GLibTime.cpp">
       <Filter>EngineCore</Filter>
     </ClCompile>
+    <ClCompile Include="EngineCore\GLibImage.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -298,6 +301,9 @@
     </ClInclude>
     <ClInclude Include="EngineCore\Vendor\stbi\stb_image.h">
       <Filter>EngineCore\Vendor\stbi</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibImage.h">
+      <Filter>EngineCore</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

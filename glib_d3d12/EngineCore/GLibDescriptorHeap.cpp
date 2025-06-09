@@ -53,6 +53,11 @@ UINT glib::GLibDescriptorHeap::GetIncrementSize() const
     return m_Index * m_pDevice->Get()->GetDescriptorHandleIncrementSize(m_Desc.Type);
 }
 
+UINT glib::GLibDescriptorHeap::GetIncrementSizeIndex(UINT idx) const
+{
+    return idx * m_pDevice->Get()->GetDescriptorHandleIncrementSize(m_Desc.Type);
+}
+
 void glib::GLibDescriptorHeap::Release()
 {
     m_pDescriptorPool->Free(m_DescriptorHeap.Get());

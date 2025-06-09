@@ -26,6 +26,7 @@ namespace glib
         ID3D12DescriptorHeap* Get() const;
 
         UINT GetIncrementSize() const;
+        UINT GetIncrementSizeIndex(UINT idx) const;
 
         void Release();
 
