@@ -144,7 +144,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="EngineCore\GLib.cpp" />
-    <ClCompile Include="EngineCore\GLibImage.cpp" />
     <ClCompile Include="EngineCore\GLibSwapChain.cpp" />
     <ClCompile Include="EngineCore\GLibCommandAllocator.cpp" />
     <ClCompile Include="EngineCore\GLibCommandQueue.cpp" />
@@ -170,7 +169,6 @@
   <ItemGroup>
     <ClInclude Include="EngineCore\GLib.h" />
     <ClInclude Include="EngineCore\GLibBinaryLoader.h" />
-    <ClInclude Include="EngineCore\GLibImage.h" />
     <ClInclude Include="EngineCore\GLibMemory.h" />
     <ClInclude Include="EngineCore\GLibSwapChain.h" />
     <ClInclude Include="EngineCore\GLibCommandAllocator.h" />

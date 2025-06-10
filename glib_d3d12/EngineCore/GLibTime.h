@@ -16,15 +16,6 @@ namespace glib
 
         GLibTime();
 
-        /// <summary>
-        /// 時間加算方法
-        /// </summary>
-        enum class AdditionMethod {
-            None = 0,	// 加算しない
-            Usual,		// 加算する(時間経過率を含まない)
-            Rate		// 加算する(時間経過率を含む)
-        };
-
         /// <summary>毎フレーム更新（通常Update用）</summary>
         void Update();
 
@@ -109,6 +100,8 @@ namespace glib
         /// 最大FPSを設定する
         /// </summary>
         void SetMaxFPS(int fps);
+
+        int GetMaxFPS() const;
 
         //==================================================
         // ▼変換

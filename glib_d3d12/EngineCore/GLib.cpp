@@ -4,6 +4,9 @@
 #include <windows.h>
 #include <Vendor/magic_enum/magic_enum.hpp>
 #include <DirectXMath.h>
+#include <conio.h>
+#include <stdio.h>
+#include <psapi.h>
 
 #include <GLib.h>
 #include <GLibDevice.h>
@@ -24,7 +27,6 @@
 #include <GLibIndexBuffer.h>
 #include <GLibConstantBuffer.h>
 #include <GLibTexture.h>
-#include <GLibImage.h>
 
 /* pragma link */
 #pragma comment(lib, "d3d12.lib")
@@ -34,6 +36,10 @@ using namespace DirectX;
 
 namespace glib
 {
+    // tick debug
+    LARGE_INTEGER freq;
+    LARGE_INTEGER start, end;
+    bool isRefreshTick = false;
 
     /* constants */
     const int SHADER_MAX = 10;
@@ -55,7 +61,6 @@ namespace glib
     /* resources */
     glib::GLibIndexBuffer*              pIndexBuffer;
     glib::GLibVertexBuffer*             pVertexBuffer;
-    glib::GLibImage*                    pImage[2];
 
 
     D3D12_VIEWPORT                      ViewPort;
@@ -85,8 +90,6 @@ bool glib::Init()
             pPipelines[i]            = new GLibPipeline;
             pGraphicsCommandLists[i] = new GLibGraphicsCommandList;
         }
-        pImage[0]                              = new GLibImage;
-        pImage[1]                              = new GLibImage;
         pVertexBuffer                       = new GLibVertexBuffer;
         pIndexBuffer                        = new GLibIndexBuffer;
         pDevice                             = new GLibDevice;
@@ -379,15 +382,6 @@ bool glib::Init()
 
 
     // Initialize the constant buffer
-    if (not pImage[0]->Initialize(pDevice, pDescriptorPool, pGraphicsCommandLists[0], "Resources/Images/penguin1.png"))
-    {
-        glib::Logger::ErrorLog("pImage is initialize failed.");
-    }
-    
-    if (not pImage[1]->Initialize(pDevice, pDescriptorPool, pGraphicsCommandLists[0], "Resources/Images/stamina_desc.png"))
-    {
-        glib::Logger::ErrorLog("pImage is initialize failed.");
-    }
 
 
     // Initialize the time management
@@ -403,8 +397,7 @@ bool glib::Init()
 
 void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
 {
-    glib::Logger::FormatDebugLog("DeltaTime = %.5fms", pTime->DeltaTime());
-    // メインループ
+    // メインループ  
     {
         static float radian = 0.0f;
         float radius = 0.4f;
@@ -417,37 +410,24 @@ void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
         XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, pWindow->GetAspect(), 0.01f, 10.0f);
 
         XMMATRIX world = XMMatrixScaling(2.0f, 3.0f, 1.0f) * XMMatrixTranslation(-sin(radian) * radius, 0.0f, -cos(radian) * radius);
-        auto& mat1 = pImage[0]->GetPositionBuffer()->GetMappedBuffer<CBUFFER_0>()->Mat;
-        mat1 = world * view * proj;
-        auto& dif1 = pImage[0]->GetDiffuseBuffer()->GetMappedBuffer<CBUFFER_1>()->Diffuse;
-        dif1 = { 0.0f, 0.0f, 1.0f, 1.0f };
-
         world = XMMatrixScaling(1.0f, 2.0f, 1.0f) * XMMatrixRotationAxis({ 1, 0, 1 }, radian) * XMMatrixTranslation(sin(radian) * radius, 0.0f, cos(radian) * radius);
-        auto& mat2 = pImage[1]->GetPositionBuffer()->GetMappedBuffer<CBUFFER_0>()->Mat;
-        mat2 = world * view * proj;
-        auto& dif2 = pImage[1]->GetDiffuseBuffer()->GetMappedBuffer<CBUFFER_1>()->Diffuse;
-        dif2 = { 1.0f, 0.0f, 0.0f, 1.0f };
     }
 
-    // 描画受付開始 (DrawBegin内でRenderTargetのクリア・セット、バリアの設定を行っています。)
+    // 描画受付開始  
     pSwapChain->DrawBegin(pGraphicsCommandLists[usePipelineType]);
 
-    // 以下、パイプラインの設定と、描画する頂点のセットを行います。
+    // パイプライン設定  
     pCurrentPipeline = pPipelines[usePipelineType];
     pGraphicsCommandLists[usePipelineType]->Get()->SetPipelineState(pCurrentPipeline->Get());
     pGraphicsCommandLists[usePipelineType]->Get()->RSSetViewports(1, &ViewPort);
     pGraphicsCommandLists[usePipelineType]->Get()->RSSetScissorRects(1, &ScissorRect);
     pGraphicsCommandLists[usePipelineType]->Get()->SetGraphicsRootSignature(pCurrentPipeline->GetRootSignature());
 
-    // 頂点セット
+    // 頂点セット  
     pGraphicsCommandLists[usePipelineType]->Get()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     pGraphicsCommandLists[usePipelineType]->Get()->IASetVertexBuffers(0, 1, &pVertexBuffer->GetVertexBufferView());
-    // インデックスセット
+    // インデックスセット  
     pGraphicsCommandLists[usePipelineType]->Get()->IASetIndexBuffer(&pIndexBuffer->GetIndexBufferView());
-
-    pImage[0]->Draw();
-    pImage[1]->Draw();
-
 }
 
 void glib::EndRender(const GLIB_PIPELINE_TYPE& usePipelineType)
@@ -490,8 +470,6 @@ void glib::Release()
     */
 
     SafeDelete(pTime);
-    SafeDelete(pImage[0]);
-    SafeDelete(pImage[1]);
     SafeDelete(pIndexBuffer);
     SafeDelete(pVertexBuffer);
     for (int i = 0; i < SHADER_MAX; ++i)
@@ -635,4 +613,66 @@ std::string glib::WStringToString(const std::wstring& wstr)
         nullptr,
         nullptr);
     return ret;
+}
+
+void glib::RunProfile()
+{
+    std::string title = WStringToString(pWindow->GetDefaultName());
+
+    // Memory profiling  
+    MEMORYSTATUSEX memInfo;
+    memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+    GlobalMemoryStatusEx(&memInfo);
+    DWORDLONG totalVirtualMem = memInfo.ullTotalPageFile;
+    DWORDLONG virtualMemUsed = memInfo.ullTotalPageFile - memInfo.ullAvailPageFile;
+    PROCESS_MEMORY_COUNTERS_EX pmc;
+    GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
+    SIZE_T virtualMemUsedByMe = pmc.PrivateUsage;
+    DWORDLONG totalPhysMem = memInfo.ullTotalPhys;
+    DWORDLONG physMemUsed = memInfo.ullTotalPhys - memInfo.ullAvailPhys;
+    SIZE_T physMemUsedByMe = pmc.WorkingSetSize;
+
+    // VRAM profiling  
+    DXGI_QUERY_VIDEO_MEMORY_INFO vramInfo = {};
+    ComPtr<IDXGIAdapter3> adapter;
+    HRESULT hr = pDevice->Get()->QueryInterface(IID_PPV_ARGS(&adapter));
+    if (SUCCEEDED(hr))
+    {
+        adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &vramInfo);
+    }
+    SIZE_T vramUsed = vramInfo.CurrentUsage / (1024 * 1024);
+
+    SIZE_T total = (physMemUsedByMe / (1024 * 1024)) + (virtualMemUsedByMe / (1024 * 1024));
+
+    // Update window title with memory usage  
+    std::string memoryInfo = "   |   [PhysMemUsed: " + std::to_string(physMemUsedByMe / (1024 * 1024)) + "MB, VirtMemUsed: " + std::to_string(virtualMemUsedByMe / (1024 * 1024)) + "MB, TotalMemUsed: " + std::to_string(total) + "MB]" + "  |  " + "[VRAMUsed: " + std::to_string(vramUsed) + "MB]";
+
+    if(isRefreshTick)
+    {
+        static int frame;
+        static float fps;
+        if (++frame % 60 == 0)
+        {
+            fps = 1.0f / pTime->DeltaTime();
+        }
+        pWindow->SetName(StringToWString(title + "   |   [DeltaTime: " + std::to_string(pTime->DeltaTime()) + "ms]" + memoryInfo + "  |  " + "[Performance: " + std::to_string(static_cast<int>(fps)) + "fps]").c_str());
+    }
+    else
+    {
+        pWindow->SetName(StringToWString(title + "   |   [DeltaTime: " + std::to_string(pTime->DeltaTime()) + "ms]" + memoryInfo).c_str());
+    }
+}
+
+void glib::BeginRecordPerformance()
+{
+    isRefreshTick = false;
+    QueryPerformanceFrequency(&freq);
+
+    QueryPerformanceCounter(&start);
+}
+
+void glib::EndRecordPerformance()
+{
+    QueryPerformanceCounter(&end);
+    isRefreshTick = true;
 }

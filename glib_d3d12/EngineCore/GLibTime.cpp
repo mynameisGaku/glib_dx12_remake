@@ -126,3 +126,8 @@ void glib::GLibTime::SetMaxFPS(int fps)
     m_MaxFps = fps;
     m_FixedDeltaTime = 1.0f / m_MaxFps;
 }
+
+int glib::GLibTime::GetMaxFPS() const
+{
+    return m_MaxFps;
+}

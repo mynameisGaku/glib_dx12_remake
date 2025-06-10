@@ -20,6 +20,9 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 
     while (true)
     {
+        // 処理速度計測開始
+        glib::BeginRecordPerformance();
+
         // GLibのレンダリング開始
         glib::BeginRender();
 
@@ -31,6 +34,12 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 
         // GLibのレンダリング終了
         glib::EndRender();
+
+        // 処理速度計測終了
+        glib::EndRecordPerformance();
+
+        // プロファイリングする
+        glib::RunProfile();
     }
 
     glib::Release();

@@ -20,6 +20,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 glib::GLibWindow::GLibWindow()
 {
     m_WindowTitle = L"GLib_D3D12";
+    m_DefaultWindowTitle = m_WindowTitle;
     m_ClientWidth = 1280;
     m_ClientHeight = 720;
     m_ClientPosX = (GetSystemMetrics(SM_CXSCREEN) - m_ClientWidth) / 2;
