@@ -14,5 +14,5 @@
 // Type Alias
 //-----------------------------------------------------------------------------
 template<typename T>
-using ComPtr = Microsoft::WRL::ComPtr<T>;
+using GLibComPtr = Microsoft::WRL::ComPtr<T>;
 

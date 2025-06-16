@@ -22,6 +22,7 @@
 #include <GLibMemory.h>
 #include <GLibWindow.h>
 #include <GLibBinaryLoader.h>
+#include <GLibD3D12Wrapper.h>
 
 /* pragma link */
 #pragma comment(lib, "d3d12.lib")
@@ -38,17 +39,15 @@ namespace glib
 
     /* constants */
     const int SHADER_MAX = 10;
-    const int BACKBUFF_MAX = 2;
 
     // config
-    int MaxFPS;
+    int MaxFPS = 60;
+    int BackBufferCountMax = 2;
 
     /* device interfaces */
     glib::GLibTime*                     pTime;
     glib::GLibWindow*                   pWindow;
-
-    /* resources */
-    UINT                                FrameCount;
+    glib::GLibD3D12Wrapper*             pD3D12;
 
 
     D3D12_VIEWPORT                      ViewPort;
@@ -70,8 +69,9 @@ bool glib::Init()
 {
     glib::Logger::CriticalLog("---=====================[GLIB]=====================---");
     glib::Logger::CriticalLog("GLib initialize begin.");
+
     {
-        pWindow                             = new GLibWindow();
+        pWindow                             = new GLibWindow;
         pTime                               = new GLibTime;
 
         ViewPort                            = { 0.0f, 0.0f, static_cast<float>(pWindow->GetClientWidth()), static_cast<float>(pWindow->GetClientHeight()), 0.0f, 1.0f };
@@ -91,84 +91,19 @@ bool glib::Init()
         glib::Logger::DebugLog("GLibWindow created successfully: " + glib::StringUtil::WStringToString(pWindow->GetName()));
     }
 
-    // Enable the debug layer
-    glib::GLibDebug::EnableDebugLayer();
-    /*
-    Device
-    |
-    Allocator
-    |
-    CommandList
-    |
-    CommandQueue
-    |
-    Fence
-    |
-    DescriptorPool
-    |
-    SwapChain
-    |
-    RootSignature
-    |
-    Pipeline
-    |
-    Time
-    |
-    ImGui
-    */
-
-    // Initialize the device
-
-    // Initialize the command allocator
-
-    // Initialize the command list
-
-    // Initialize the command queue
-
-    // Initialize the fence
-
-    // Initialize the descriptor pool
-
-    // Initialize the descriptor heap
-    {
-        // RTV
-        {
-        }
-
-        // CBV_SRV_UAV
-        {
-        }
-
-        // SAMPLER
-        {
-        }
-
-        // DSV
-        {
-        }
-    }
-
-    // Initialize the swap chain
-
-    // Initialize the RootSignature
+    pD3D12 = new GLibD3D12Wrapper;
 
     // Initialize the pipelines
     // ここでやっている複数の設定(DESC)は全て、一つのパイプラインの設定をしています。
     // 最終的にまとめてようやく、一つのパイプラインが出来上がります。
     // 細かな設定は、パイプラインの種類によって異なるので、いろいろ調べつつ、自分が求めているパイプラインにカスタムしよう。
-#ifdef _DEBUG
-    glib::GLibBinaryLoader vs("x64/Debug/SpriteVS.cso");
-    glib::GLibBinaryLoader ps("x64/Debug/SpritePS.cso");
-#else
-    glib::GLibBinaryLoader vs("x64/Release/SpriteVS.cso");
-    glib::GLibBinaryLoader ps("x64/Release/SpritePS.cso");
-#endif
-
-    // Initialize the vertex buffer
-
-    // Initialize the index buffer
-
-    // Initialize the constant buffer
+//#ifdef _DEBUG
+//    glib::GLibBinaryLoader vs("x64/Debug/SpriteVS.cso");
+//    glib::GLibBinaryLoader ps("x64/Debug/SpritePS.cso");
+//#else
+//    glib::GLibBinaryLoader vs("x64/Release/SpriteVS.cso");
+//    glib::GLibBinaryLoader ps("x64/Release/SpritePS.cso");
+//#endif
 
     // Initialize the time management
     pTime->SetLevelLoaded();
@@ -200,18 +135,12 @@ void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
     }
 
     // 描画受付開始
-
-    // パイプライン設定
-
-    // 頂点セット
-
-    // インデックスセット
-
+    pD3D12->BeginRender();
 }
 
 void glib::EndRender(const GLIB_PIPELINE_TYPE& usePipelineType)
 {
-    WaitDrawDone();
+    pD3D12->EndRender();
 }
 
 void glib::Release()
@@ -220,40 +149,18 @@ void glib::Release()
     glib::Logger::CriticalLog("---=====================[GLIB]=====================---");
     glib::Logger::CriticalLog("GLib release begin.");
 
-    // D3D12 Release
-    /*
-    Device
-    |
-    Allocator
-    |
-    CommandList
-    |
-    CommandQueue
-    |
-    Fence
-    |
-    DescriptorPool
-    |
-    SwapChain
-    |
-    RootSignature
-    |
-    Pipeline
-    |
-    VertexBuffer
-    |
-    Time
-    |
-    ImGui
-    */
-
     SafeDelete(pTime);
+    glib::Logger::DebugLog("Time released successfully.");
+
+    SafeDelete(pD3D12);
+    glib::Logger::DebugLog("D3D12 released successfully.");
     
     // Release the window
     if (pWindow->GetHWnd())
     {
         DestroyWindow(pWindow->GetHWnd());
         SafeDelete(pWindow);
+        glib::Logger::DebugLog("Window released successfully.");
     }
 
     // Log release message
@@ -325,6 +232,16 @@ void glib::SetWindowSize(int width, int height)
 glib::GLibWindow* glib::GetWindow()
 {
     return pWindow;
+}
+
+void glib::SetBackBufferCount(int count)
+{
+    BackBufferCountMax = count;
+}
+
+int glib::GetBackBufferCount()
+{
+    return BackBufferCountMax;
 }
 
 std::wstring glib::StringToWString(const std::string& str)

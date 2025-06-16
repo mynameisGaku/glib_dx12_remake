@@ -144,6 +144,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="EngineCore\GLib.cpp" />
+    <ClCompile Include="EngineCore\GLibD3D12Wrapper.cpp" />
     <ClCompile Include="EngineCore\GLibMessage.cpp" />
     <ClCompile Include="EngineCore\GLibTime.cpp" />
     <ClCompile Include="EngineCore\GLibWindow.cpp" />
@@ -156,6 +157,7 @@
   <ItemGroup>
     <ClInclude Include="EngineCore\GLib.h" />
     <ClInclude Include="EngineCore\GLibBinaryLoader.h" />
+    <ClInclude Include="EngineCore\GLibD3D12Wrapper.h" />
     <ClInclude Include="EngineCore\GLibMemory.h" />
     <ClInclude Include="EngineCore\GLibComPtr.h" />
     <ClInclude Include="EngineCore\GLibDebug.h" />

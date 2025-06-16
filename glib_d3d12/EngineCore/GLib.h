@@ -79,6 +79,10 @@ namespace glib
     // ウィンドウのポインタを取得する
     GLibWindow* GetWindow();
 
+    void SetBackBufferCount(int count);
+
+    int GetBackBufferCount();
+
     // EnumをStringに変換する
     template <typename T>
     std::string EnumToString(T _enum)

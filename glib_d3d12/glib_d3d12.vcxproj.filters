@@ -42,6 +42,9 @@
     <ClCompile Include="EngineCore\GLibTime.cpp">
       <Filter>EngineCore</Filter>
     </ClCompile>
+    <ClCompile Include="EngineCore\GLibD3D12Wrapper.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\Constant.hlsli">
@@ -220,6 +223,9 @@
     </ClInclude>
     <ClInclude Include="EngineCore\Vendor\stbi\stb_image.h">
       <Filter>EngineCore\Vendor\stbi</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibD3D12Wrapper.h">
+      <Filter>EngineCore</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
