@@ -93,4 +93,7 @@ namespace glib
 
     void BeginRecordPerformance();
     void EndRecordPerformance();
+
+    void SetMaxFPS(int fps);
+    int GetMaxFPS();
 }

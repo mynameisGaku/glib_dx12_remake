@@ -36,46 +36,7 @@
     <ClCompile Include="EngineCore\GLib.cpp">
       <Filter>EngineCore</Filter>
     </ClCompile>
-    <ClCompile Include="EngineCore\GLibDevice.cpp">
-      <Filter>EngineCore</Filter>
-    </ClCompile>
     <ClCompile Include="EngineCore\GLibMessage.cpp">
-      <Filter>EngineCore</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineCore\GLibCommandQueue.cpp">
-      <Filter>EngineCore</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineCore\GLibCommandAllocator.cpp">
-      <Filter>EngineCore</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineCore\GLibGraphicsCommandList.cpp">
-      <Filter>EngineCore</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineCore\GLibFence.cpp">
-      <Filter>EngineCore</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineCore\GLibSwapChain.cpp">
-      <Filter>EngineCore</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineCore\GLibDescriptorHeap.cpp">
-      <Filter>EngineCore</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineCore\GLibVertexBuffer.cpp">
-      <Filter>EngineCore</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineCore\GLibIndexBuffer.cpp">
-      <Filter>EngineCore</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineCore\GLibTexture.cpp">
-      <Filter>EngineCore</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineCore\GLibConstantBuffer.cpp">
-      <Filter>EngineCore</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineCore\GLibDescriptorPool.cpp">
-      <Filter>EngineCore</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineCore\GLibPipeline.cpp">
       <Filter>EngineCore</Filter>
     </ClCompile>
     <ClCompile Include="EngineCore\GLibTime.cpp">
@@ -83,28 +44,13 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
     <None Include="Resources\Shaders\Constant.hlsli">
       <Filter>Resources\Shaders</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineCore\GLibWindow.h">
-      <Filter>EngineCore</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineCore\GLibDevice.h">
-      <Filter>EngineCore</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineCore\GLibCommandAllocator.h">
-      <Filter>EngineCore</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineCore\GLibGraphicsCommandList.h">
-      <Filter>EngineCore</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineCore\GLibCommandQueue.h">
-      <Filter>EngineCore</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineCore\GLibFence.h">
       <Filter>EngineCore</Filter>
     </ClInclude>
     <ClInclude Include="EngineCore\GLibDebug.h">
@@ -123,30 +69,6 @@
       <Filter>EngineCore</Filter>
     </ClInclude>
     <ClInclude Include="EngineCore\GLibStringUtil.h">
-      <Filter>EngineCore</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineCore\GLibSwapChain.h">
-      <Filter>EngineCore</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineCore\GLibDescriptorHeap.h">
-      <Filter>EngineCore</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineCore\GLibPipeline.h">
-      <Filter>EngineCore</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineCore\GLibVertexBuffer.h">
-      <Filter>EngineCore</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineCore\GLibIndexBuffer.h">
-      <Filter>EngineCore</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineCore\GLibTexture.h">
-      <Filter>EngineCore</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineCore\GLibConstantBuffer.h">
-      <Filter>EngineCore</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineCore\GLibDescriptorPool.h">
       <Filter>EngineCore</Filter>
     </ClInclude>
     <ClInclude Include="EngineCore\GLibTime.h">

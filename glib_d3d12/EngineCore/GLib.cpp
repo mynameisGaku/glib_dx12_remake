@@ -1,32 +1,27 @@
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <Vendor/stbi/stb_image.h>
+// os
 #include <windows.h>
-#include <Vendor/magic_enum/magic_enum.hpp>
+#include <cstdint>
+
+// d3d
 #include <DirectXMath.h>
-#include <conio.h>
-#include <stdio.h>
+#include <d3dx12.h>
+#include <d3d12.h>
+#include <dxgi1_4.h>
+
+// vendor
+#include <Vendor/magic_enum/magic_enum.hpp>
+
+// profiler
 #include <psapi.h>
 
 #include <GLib.h>
-#include <GLibDevice.h>
 #include <GLibDebug.h>
-#include <GLibCommandAllocator.h>
-#include <GLibCommandQueue.h>
-#include <GLibGraphicsCommandList.h>
-#include <GLibFence.h>
 #include <GLibStringUtil.h>
-#include <GLibDescriptorPool.h>
-#include <GLibSwapChain.h>
 #include <GLibTime.h>
-#include <GLibPipeline.h>
 #include <GLibMemory.h>
 #include <GLibWindow.h>
 #include <GLibBinaryLoader.h>
-#include <GLibVertexBuffer.h>
-#include <GLibIndexBuffer.h>
-#include <GLibConstantBuffer.h>
-#include <GLibTexture.h>
 
 /* pragma link */
 #pragma comment(lib, "d3d12.lib")
@@ -45,22 +40,15 @@ namespace glib
     const int SHADER_MAX = 10;
     const int BACKBUFF_MAX = 2;
 
+    // config
+    int MaxFPS;
+
     /* device interfaces */
-    glib::GLibDescriptorPool*           pDescriptorPool;
-    glib::GLibPipeline*                 pPipelines[SHADER_MAX];
-    glib::GLibPipeline*                 pCurrentPipeline;
-    glib::GLibGraphicsCommandList*      pGraphicsCommandLists[SHADER_MAX];
-    glib::GLibDevice*                   pDevice;
-    glib::GLibSwapChain*                pSwapChain;
-    glib::GLibCommandAllocator*         pCommandAllocator;
-    glib::GLibCommandQueue*             pCommandQueue;
-    glib::GLibFence*                    pFence;
     glib::GLibTime*                     pTime;
     glib::GLibWindow*                   pWindow;
 
     /* resources */
-    glib::GLibIndexBuffer*              pIndexBuffer;
-    glib::GLibVertexBuffer*             pVertexBuffer;
+    UINT                                FrameCount;
 
 
     D3D12_VIEWPORT                      ViewPort;
@@ -84,19 +72,6 @@ bool glib::Init()
     glib::Logger::CriticalLog("GLib initialize begin.");
     {
         pWindow                             = new GLibWindow();
-        pDescriptorPool                     = new GLibDescriptorPool;
-        for (int i = 0; i < SHADER_MAX; ++i)
-        {
-            pPipelines[i]            = new GLibPipeline;
-            pGraphicsCommandLists[i] = new GLibGraphicsCommandList;
-        }
-        pVertexBuffer                       = new GLibVertexBuffer;
-        pIndexBuffer                        = new GLibIndexBuffer;
-        pDevice                             = new GLibDevice;
-        pSwapChain                          = new GLibSwapChain;
-        pCommandAllocator                   = new GLibCommandAllocator;
-        pCommandQueue                       = new GLibCommandQueue;
-        pFence                              = new GLibFence;
         pTime                               = new GLibTime;
 
         ViewPort                            = { 0.0f, 0.0f, static_cast<float>(pWindow->GetClientWidth()), static_cast<float>(pWindow->GetClientHeight()), 0.0f, 1.0f };
@@ -143,154 +118,39 @@ bool glib::Init()
     */
 
     // Initialize the device
-    pDevice->Initialize(D3D_FEATURE_LEVEL_12_0);
-
 
     // Initialize the command allocator
-    pCommandAllocator->Initialize(pDevice, D3D12_COMMAND_LIST_TYPE_DIRECT);
 
     // Initialize the command list
-    pGraphicsCommandLists[0]->Initialize(pDevice, pCommandAllocator, D3D12_COMMAND_LIST_TYPE_DIRECT);
 
     // Initialize the command queue
-    D3D12_COMMAND_QUEUE_DESC cmdQueueDesc = {};
-    cmdQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-    cmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-    pCommandQueue->Initialize(pDevice, cmdQueueDesc);
-
 
     // Initialize the fence
-    pFence->Initialize(pDevice, pCommandQueue, D3D12_FENCE_FLAG_NONE);
-
 
     // Initialize the descriptor pool
-    if (!pDescriptorPool->Initialize(pDevice))
-    {
-        glib::Logger::ErrorLog("Failed to initialize descriptor pool.");
-        return false;
-    }
 
     // Initialize the descriptor heap
     {
         // RTV
         {
-            D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-            desc.NumDescriptors = BACKBUFF_MAX; // バックバッファの数
-            desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV; // レンダーターゲットビュー用のヒープ
-            desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE; // シェーダーからアクセスしない
-            pDescriptorPool->Allocate(GLIB_DESCRIPTOR_HEAP_TYPE_RTV, desc);
         }
 
         // CBV_SRV_UAV
         {
-            D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-            desc.NumDescriptors = 3000;
-            desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-            desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-            desc.NodeMask = 0;
-            pDescriptorPool->Allocate(GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, desc);
         }
 
         // SAMPLER
         {
-            D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-            desc.NumDescriptors = 1000; // サンプラーの数
-            desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER; // サンプラー用のヒープ
-            desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE; // シェーダーからアクセス可能
-            pDescriptorPool->Allocate(GLIB_DESCRIPTOR_HEAP_TYPE_SAMPLER, desc);
         }
 
         // DSV
         {
-            D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-            desc.NumDescriptors = 1; // 深度ステンシルビュー用のヒープ
-            desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV; // 深度ステンシルビュー用のヒープ
-            desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE; // シェーダーからアクセスしない
-            pDescriptorPool->Allocate(GLIB_DESCRIPTOR_HEAP_TYPE_DSV, desc);
         }
     }
 
-
-
     // Initialize the swap chain
-    if (!pSwapChain->Initialize(pDevice, pCommandQueue, pCommandAllocator, pDescriptorPool, BACKBUFF_MAX))
-    {
-        glib::Logger::ErrorLog("Failed to initialize swap chain.");
-        return false;
-    }
-
 
     // Initialize the RootSignature
-    D3D12_DESCRIPTOR_RANGE ranges[3] = {};
-    UINT b0 = 0;
-    ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; // Constant Buffer View
-    ranges[0].BaseShaderRegister = b0; // Base shader register for this range
-    ranges[0].NumDescriptors = 1; // Number of descriptors in this range
-    ranges[0].RegisterSpace = 0; // Register space for this range
-    ranges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // Append to the end of the descriptor table
-    UINT b1 = 1;
-    ranges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; // Shader Resource View
-    ranges[1].BaseShaderRegister = b1; // Base shader register for this range
-    ranges[1].NumDescriptors = 1; // Number of descriptors in this range
-    ranges[1].RegisterSpace = 0; // Register space for this range
-    ranges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // Append to the end of the descriptor table
-    UINT t0 = 0;
-    ranges[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-    ranges[2].BaseShaderRegister = t0;
-    ranges[2].NumDescriptors = 1;
-    ranges[2].RegisterSpace = 0;
-    ranges[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-    D3D12_ROOT_PARAMETER rootParameters[1] = {};
-    rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // Descriptor table type
-    rootParameters[0].DescriptorTable.pDescriptorRanges = ranges; // Pointer to the descriptor ranges
-    rootParameters[0].DescriptorTable.NumDescriptorRanges = _countof(ranges); // Number of descriptor ranges
-    rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL; // Shader visibility for this root parameter
-    D3D12_STATIC_SAMPLER_DESC samplerDesc[1] = {};
-    samplerDesc[0].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-    samplerDesc[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    samplerDesc[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    samplerDesc[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    samplerDesc[0].BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-    samplerDesc[0].MaxLOD = D3D12_FLOAT32_MAX;
-    samplerDesc[0].MinLOD = 0.0f;
-    samplerDesc[0].ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-    samplerDesc[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-    D3D12_ROOT_SIGNATURE_DESC rootSigDesc = {};
-    rootSigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-    rootSigDesc.pParameters = rootParameters;
-    rootSigDesc.NumParameters = _countof(rootParameters);
-    rootSigDesc.pStaticSamplers = samplerDesc;
-    rootSigDesc.NumStaticSamplers = _countof(samplerDesc);
-
-    ID3DBlob* blob;
-    HRESULT hr = D3D12SerializeRootSignature(
-        &rootSigDesc,
-        D3D_ROOT_SIGNATURE_VERSION_1,
-        &blob,
-        nullptr
-    );
-    glib::Logger::FormatDebugLog("Serializing root signature...");
-
-    if (FAILED(hr))
-    {
-        glib::Logger::FormatErrorLog("Failed to serialize root signature: HRESULT = 0x{:X}", hr);
-        return false;
-    }
-
-    ComPtr<ID3D12RootSignature> pRootsignature;
-    hr = pDevice->Get()->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(pRootsignature.GetAddressOf()));
-    glib::Logger::FormatDebugLog("Creating root signature...");
-
-    if (FAILED(hr))
-    {
-        glib::Logger::FormatErrorLog("Failed to create root signature: HRESULT = 0x{:X}", hr);
-        blob->Release();
-        return false;
-    }
-
-    blob->Release();
-    glib::Logger::FormatDebugLog("Root signature created successfully.");
-
 
     // Initialize the pipelines
     // ここでやっている複数の設定(DESC)は全て、一つのパイプラインの設定をしています。
@@ -304,85 +164,11 @@ bool glib::Init()
     glib::GLibBinaryLoader ps("x64/Release/SpritePS.cso");
 #endif
 
-    D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-    };
-    D3D12_RASTERIZER_DESC rastDesc = {};
-    rastDesc.FrontCounterClockwise = false;
-    rastDesc.CullMode = D3D12_CULL_MODE_NONE;
-    rastDesc.FillMode = D3D12_FILL_MODE_SOLID;
-    rastDesc.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
-    rastDesc.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
-    rastDesc.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
-    rastDesc.DepthClipEnable = true;
-    rastDesc.MultisampleEnable = false;
-    rastDesc.AntialiasedLineEnable = false;
-    rastDesc.ForcedSampleCount = 0;
-    rastDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-    D3D12_BLEND_DESC blendDesc = {};
-    blendDesc.AlphaToCoverageEnable = false;
-    blendDesc.IndependentBlendEnable = false;
-    blendDesc.RenderTarget[0].BlendEnable = true;
-    blendDesc.RenderTarget[0].LogicOpEnable = false;
-    blendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
-    blendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
-    blendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
-    blendDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
-    blendDesc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
-    blendDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
-    blendDesc.RenderTarget[0].LogicOp = D3D12_LOGIC_OP_NOOP;
-    blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-    D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};
-    depthStencilDesc.DepthEnable = false; // Depth test is disabled for now
-    depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-    depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
-    depthStencilDesc.StencilEnable = false; // Stencil test is disabled for now
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-    psoDesc.pRootSignature = pRootsignature.Get();
-    psoDesc.VS = { vs.Code(), vs.Size() };
-    psoDesc.PS = { ps.Code(), ps.Size() };
-    psoDesc.InputLayout = { inputLayout, _countof(inputLayout) };
-    psoDesc.RasterizerState = rastDesc;
-    psoDesc.BlendState = blendDesc;
-    psoDesc.DepthStencilState = depthStencilDesc;
-    psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT; // Depth-stencil format
-    psoDesc.SampleMask = UINT_MAX; // Sample mask for blending
-    psoDesc.SampleDesc.Count = 1; // No multisampling
-    psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; // Primitive topology type
-    psoDesc.NumRenderTargets = 1; // Number of render targets
-    psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; // Render target format
-    pPipelines[0]->Initialize(pDevice, psoDesc);
-
-
     // Initialize the vertex buffer
-    Vertex vertices[] =
-    {
-        { {-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f} },
-        { {-0.5f,  0.5f, 0.0f}, {0.0f, 1.0f} },
-        { { 0.5f, -0.5f, 0.0f}, {1.0f, 0.0f} },
-        { { 0.5f,  0.5f, 0.0f}, {1.0f, 1.0f} }
-    };
-
-    pVertexBuffer->Initialize(pDevice, vertices, _countof(vertices), sizeof(Vertex));
-
-
-
 
     // Initialize the index buffer
-    unsigned short indices[] =
-    {
-        0, 1, 2,
-        2, 1, 3
-    };
-    UINT indexxCount = _countof(indices);
-    UINT stride = sizeof(unsigned short);
-    pIndexBuffer->Initialize(pDevice, indices, indexxCount, stride);
-
-
 
     // Initialize the constant buffer
-
 
     // Initialize the time management
     pTime->SetLevelLoaded();
@@ -413,26 +199,18 @@ void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
         world = XMMatrixScaling(1.0f, 2.0f, 1.0f) * XMMatrixRotationAxis({ 1, 0, 1 }, radian) * XMMatrixTranslation(sin(radian) * radius, 0.0f, cos(radian) * radius);
     }
 
-    // 描画受付開始  
-    pSwapChain->DrawBegin(pGraphicsCommandLists[usePipelineType]);
+    // 描画受付開始
 
-    // パイプライン設定  
-    pCurrentPipeline = pPipelines[usePipelineType];
-    pGraphicsCommandLists[usePipelineType]->Get()->SetPipelineState(pCurrentPipeline->Get());
-    pGraphicsCommandLists[usePipelineType]->Get()->RSSetViewports(1, &ViewPort);
-    pGraphicsCommandLists[usePipelineType]->Get()->RSSetScissorRects(1, &ScissorRect);
-    pGraphicsCommandLists[usePipelineType]->Get()->SetGraphicsRootSignature(pCurrentPipeline->GetRootSignature());
+    // パイプライン設定
 
-    // 頂点セット  
-    pGraphicsCommandLists[usePipelineType]->Get()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    pGraphicsCommandLists[usePipelineType]->Get()->IASetVertexBuffers(0, 1, &pVertexBuffer->GetVertexBufferView());
-    // インデックスセット  
-    pGraphicsCommandLists[usePipelineType]->Get()->IASetIndexBuffer(&pIndexBuffer->GetIndexBufferView());
+    // 頂点セット
+
+    // インデックスセット
+
 }
 
 void glib::EndRender(const GLIB_PIPELINE_TYPE& usePipelineType)
 {
-    pSwapChain->DrawEnd(pGraphicsCommandLists[usePipelineType]);
     WaitDrawDone();
 }
 
@@ -470,22 +248,6 @@ void glib::Release()
     */
 
     SafeDelete(pTime);
-    SafeDelete(pIndexBuffer);
-    SafeDelete(pVertexBuffer);
-    for (int i = 0; i < SHADER_MAX; ++i)
-    {
-        SafeDelete(pPipelines[i]);
-    }
-    SafeDelete(pSwapChain);
-    SafeDelete(pDescriptorPool);
-    SafeDelete(pFence);
-    SafeDelete(pCommandQueue);
-    for (int i = 0; i < SHADER_MAX; ++i)
-    {
-        SafeDelete(pGraphicsCommandLists[i]);
-    }
-    SafeDelete(pCommandAllocator);
-    SafeDelete(pDevice);
     
     // Release the window
     if (pWindow->GetHWnd())
@@ -502,7 +264,7 @@ void glib::Release()
 
 void glib::WaitDrawDone()
 {
-    pFence->WaitDrawDone();
+
 }
 
 void glib::RefreshDeltaTime()
@@ -633,7 +395,7 @@ void glib::RunProfile()
     SIZE_T physMemUsedByMe = pmc.WorkingSetSize;
 
     // VRAM profiling  
-    DXGI_QUERY_VIDEO_MEMORY_INFO vramInfo = {};
+    /*DXGI_QUERY_VIDEO_MEMORY_INFO vramInfo = {};
     ComPtr<IDXGIAdapter3> adapter;
     HRESULT hr = pDevice->Get()->QueryInterface(IID_PPV_ARGS(&adapter));
     if (SUCCEEDED(hr))
@@ -642,10 +404,13 @@ void glib::RunProfile()
     }
     SIZE_T vramUsed = vramInfo.CurrentUsage / (1024 * 1024);
 
-    SIZE_T total = (physMemUsedByMe / (1024 * 1024)) + (virtualMemUsedByMe / (1024 * 1024));
+    SIZE_T total = (physMemUsedByMe / (1024 * 1024)) + (virtualMemUsedByMe / (1024 * 1024));*/
 
     // Update window title with memory usage  
-    std::string memoryInfo = "   |   [PhysMemUsed: " + std::to_string(physMemUsedByMe / (1024 * 1024)) + "MB, VirtMemUsed: " + std::to_string(virtualMemUsedByMe / (1024 * 1024)) + "MB, TotalMemUsed: " + std::to_string(total) + "MB]" + "  |  " + "[VRAMUsed: " + std::to_string(vramUsed) + "MB]";
+    std::string memoryInfo = "   |   [PhysMemUsed: " + std::to_string(physMemUsedByMe / (1024 * 1024)) + "MB";
+    memoryInfo += "VirtMemUsed: " + std::to_string(virtualMemUsedByMe / (1024 * 1024)) + "MB";
+    //memoryInfo += " TotalMemUsed : " + std::to_string(total) + "MB]";
+    //memoryInfo += " | " + "[VRAMUsed:" + std::to_string(vramUsed) + "MB]";
 
     if(isRefreshTick)
     {
@@ -675,4 +440,14 @@ void glib::EndRecordPerformance()
 {
     QueryPerformanceCounter(&end);
     isRefreshTick = true;
+}
+
+void glib::SetMaxFPS(int fps)
+{
+    MaxFPS = fps;
+}
+
+int glib::GetMaxFPS()
+{
+    return MaxFPS;
 }

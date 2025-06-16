@@ -144,21 +144,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="EngineCore\GLib.cpp" />
-    <ClCompile Include="EngineCore\GLibSwapChain.cpp" />
-    <ClCompile Include="EngineCore\GLibCommandAllocator.cpp" />
-    <ClCompile Include="EngineCore\GLibCommandQueue.cpp" />
-    <ClCompile Include="EngineCore\GLibConstantBuffer.cpp" />
-    <ClCompile Include="EngineCore\GLibDescriptorHeap.cpp" />
-    <ClCompile Include="EngineCore\GLibDescriptorPool.cpp" />
-    <ClCompile Include="EngineCore\GLibDevice.cpp" />
-    <ClCompile Include="EngineCore\GLibFence.cpp" />
-    <ClCompile Include="EngineCore\GLibGraphicsCommandList.cpp" />
-    <ClCompile Include="EngineCore\GLibIndexBuffer.cpp" />
     <ClCompile Include="EngineCore\GLibMessage.cpp" />
-    <ClCompile Include="EngineCore\GLibPipeline.cpp" />
-    <ClCompile Include="EngineCore\GLibTexture.cpp" />
     <ClCompile Include="EngineCore\GLibTime.cpp" />
-    <ClCompile Include="EngineCore\GLibVertexBuffer.cpp" />
     <ClCompile Include="EngineCore\GLibWindow.cpp" />
     <ClCompile Include="Game\main.cpp" />
   </ItemGroup>
@@ -170,25 +157,12 @@
     <ClInclude Include="EngineCore\GLib.h" />
     <ClInclude Include="EngineCore\GLibBinaryLoader.h" />
     <ClInclude Include="EngineCore\GLibMemory.h" />
-    <ClInclude Include="EngineCore\GLibSwapChain.h" />
-    <ClInclude Include="EngineCore\GLibCommandAllocator.h" />
-    <ClInclude Include="EngineCore\GLibCommandQueue.h" />
     <ClInclude Include="EngineCore\GLibComPtr.h" />
-    <ClInclude Include="EngineCore\GLibConstantBuffer.h" />
     <ClInclude Include="EngineCore\GLibDebug.h" />
-    <ClInclude Include="EngineCore\GLibDescriptorHeap.h" />
-    <ClInclude Include="EngineCore\GLibDescriptorPool.h" />
-    <ClInclude Include="EngineCore\GLibDevice.h" />
-    <ClInclude Include="EngineCore\GLibFence.h" />
-    <ClInclude Include="EngineCore\GLibGraphicsCommandList.h" />
-    <ClInclude Include="EngineCore\GLibIndexBuffer.h" />
     <ClInclude Include="EngineCore\GLibLogger.h" />
     <ClInclude Include="EngineCore\GLibMessage.h" />
-    <ClInclude Include="EngineCore\GLibPipeline.h" />
     <ClInclude Include="EngineCore\GLibStringUtil.h" />
-    <ClInclude Include="EngineCore\GLibTexture.h" />
     <ClInclude Include="EngineCore\GLibTime.h" />
-    <ClInclude Include="EngineCore\GLibVertexBuffer.h" />
     <ClInclude Include="EngineCore\GLibWindow.h" />
     <ClInclude Include="EngineCore\Vendor\magic_enum\magic_enum.hpp" />
     <ClInclude Include="EngineCore\Vendor\nlohmann\adl_serializer.hpp" />
@@ -262,7 +236,6 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="packages\directxtk12_desktop_2019.2025.3.21.3\build\native\directxtk12_desktop_2019.targets" Condition="Exists('packages\directxtk12_desktop_2019.2025.3.21.3\build\native\directxtk12_desktop_2019.targets')" />
     <Import Project="packages\directxtex_desktop_2019.2025.3.25.2\build\native\directxtex_desktop_2019.targets" Condition="Exists('packages\directxtex_desktop_2019.2025.3.25.2\build\native\directxtex_desktop_2019.targets')" />
     <Import Project="packages\Assimp_native_4.1_v142.4.1.0\build\native\Assimp_native_4.1_v142.targets" Condition="Exists('packages\Assimp_native_4.1_v142.4.1.0\build\native\Assimp_native_4.1_v142.targets')" />
   </ImportGroup>
@@ -270,7 +243,6 @@
     <PropertyGroup>
       <ErrorText>このプロジェクトは、このコンピューター上にない NuGet パッケージを参照しています。それらのパッケージをダウンロードするには、[NuGet パッケージの復元] を使用します。詳細については、http://go.microsoft.com/fwlink/?LinkID=322105 を参照してください。見つからないファイルは {0} です。</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('packages\directxtk12_desktop_2019.2025.3.21.3\build\native\directxtk12_desktop_2019.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\directxtk12_desktop_2019.2025.3.21.3\build\native\directxtk12_desktop_2019.targets'))" />
     <Error Condition="!Exists('packages\directxtex_desktop_2019.2025.3.25.2\build\native\directxtex_desktop_2019.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\directxtex_desktop_2019.2025.3.25.2\build\native\directxtex_desktop_2019.targets'))" />
     <Error Condition="!Exists('packages\Assimp_native_4.1_v142.4.1.0\build\native\Assimp_native_4.1_v142.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Assimp_native_4.1_v142.4.1.0\build\native\Assimp_native_4.1_v142.targets'))" />
   </Target>
