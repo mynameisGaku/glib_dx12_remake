@@ -1,19 +1,7 @@
 
-// os
-#include <windows.h>
-#include <cstdint>
-
-// d3d
-#include <DirectXMath.h>
-#include <d3dx12.h>
-#include <d3d12.h>
-#include <dxgi1_4.h>
 
 // vendor
 #include <Vendor/magic_enum/magic_enum.hpp>
-
-// profiler
-#include <psapi.h>
 
 #include <GLib.h>
 #include <GLibDebug.h>
@@ -24,19 +12,10 @@
 #include <GLibBinaryLoader.h>
 #include <GLibD3D12Wrapper.h>
 
-/* pragma link */
-#pragma comment(lib, "d3d12.lib")
-#pragma comment(lib, "dxgi.lib")
-
 using namespace DirectX;
 
 namespace glib
 {
-    // tick debug
-    LARGE_INTEGER freq;
-    LARGE_INTEGER start, end;
-    bool isRefreshTick = false;
-
     /* constants */
     const int SHADER_MAX = 10;
 
@@ -45,9 +24,9 @@ namespace glib
     int BackBufferCountMax = 2;
 
     /* device interfaces */
-    glib::GLibTime*                     pTime;
-    glib::GLibWindow*                   pWindow;
-    glib::GLibD3D12Wrapper*             pD3D12;
+    glib::GLibTime* pTime;
+    glib::GLibWindow* pWindow;
+    glib::GLibD3D12Wrapper* pD3D12;
 
 
     D3D12_VIEWPORT                      ViewPort;
@@ -68,14 +47,14 @@ namespace glib
 bool glib::Init()
 {
     glib::Logger::CriticalLog("---=====================[GLIB]=====================---");
-    glib::Logger::CriticalLog("GLib initialize begin.");
+    glib::Logger::CriticalLog("GLibの初期化を開始します。");
 
     {
-        pWindow                             = new GLibWindow;
-        pTime                               = new GLibTime;
+        pWindow = new GLibWindow;
+        pTime = new GLibTime;
 
-        ViewPort                            = { 0.0f, 0.0f, static_cast<float>(pWindow->GetClientWidth()), static_cast<float>(pWindow->GetClientHeight()), 0.0f, 1.0f };
-        ScissorRect                         = { 0, 0, pWindow->GetClientWidth(), pWindow->GetClientHeight() };
+        ViewPort = { 0.0f, 0.0f, static_cast<float>(pWindow->GetClientWidth()), static_cast<float>(pWindow->GetClientHeight()), 0.0f, 1.0f };
+        ScissorRect = { 0, 0, pWindow->GetClientWidth(), pWindow->GetClientHeight() };
     }
 
     // Initialize the window
@@ -83,35 +62,23 @@ bool glib::Init()
 
     if (!pWindow->GetHWnd())
     {
-        glib::Logger::ErrorLog("Failed to create window.");
+        glib::Logger::ErrorLog("ウィンドウの作成に失敗しました。");
         return false;
     }
     else
     {
-        glib::Logger::DebugLog("GLibWindow created successfully: " + glib::StringUtil::WStringToString(pWindow->GetName()));
+        glib::Logger::DebugLog("ウィンドウの作成に成功しました: " + glib::StringUtil::WStringToString(pWindow->GetName()));
     }
 
     pD3D12 = new GLibD3D12Wrapper;
 
-    // Initialize the pipelines
-    // ここでやっている複数の設定(DESC)は全て、一つのパイプラインの設定をしています。
-    // 最終的にまとめてようやく、一つのパイプラインが出来上がります。
-    // 細かな設定は、パイプラインの種類によって異なるので、いろいろ調べつつ、自分が求めているパイプラインにカスタムしよう。
-//#ifdef _DEBUG
-//    glib::GLibBinaryLoader vs("x64/Debug/SpriteVS.cso");
-//    glib::GLibBinaryLoader ps("x64/Debug/SpritePS.cso");
-//#else
-//    glib::GLibBinaryLoader vs("x64/Release/SpriteVS.cso");
-//    glib::GLibBinaryLoader ps("x64/Release/SpritePS.cso");
-//#endif
-
     // Initialize the time management
     pTime->SetLevelLoaded();
-    glib::Logger::DebugLog("Time initialized successfully.");
+    glib::Logger::DebugLog("時間管理システムの初期化に成功しました。");
 
 
-    glib::Logger::DebugLog("GLib initialized successfully.");
-    glib::Logger::CriticalLog("GLib initialize end.");
+    glib::Logger::DebugLog("GLibの初期化が正常に完了しました。");
+    glib::Logger::CriticalLog("GLibの初期化を終了します。");
     glib::Logger::CriticalLog("---=====================[GLIB]=====================---");
     return true;
 }
@@ -121,19 +88,8 @@ void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
     // メインループ  
     {
         static float radian = 0.0f;
-        float radius = 0.4f;
-        radian += 1.0f * pTime->DeltaTime();
-
-        XMVECTOR eye = { 0, 0, -2 };
-        XMVECTOR focus = { 0, 0, 0 };
-        XMVECTOR up = { 0, 1, 0 };
-        XMMATRIX view = XMMatrixLookAtLH(eye, focus, up);
-        XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, pWindow->GetAspect(), 0.01f, 10.0f);
-
-        XMMATRIX world = XMMatrixScaling(2.0f, 3.0f, 1.0f) * XMMatrixTranslation(-sin(radian) * radius, 0.0f, -cos(radian) * radius);
-        world = XMMatrixScaling(1.0f, 2.0f, 1.0f) * XMMatrixRotationAxis({ 1, 0, 1 }, radian) * XMMatrixTranslation(sin(radian) * radius, 0.0f, cos(radian) * radius);
-
-        pD3D12->SetClearColor(XMFLOAT4(sinf(radian), 1.0f, -sinf(radian), 1.0f));
+        radian += XMConvertToRadians(10.0f) * pTime->DeltaTime();
+        pD3D12->SetClearColor(XMFLOAT4(sinf(radian), 1.0f, cosf(radian), 1.0f));
     }
 
     // 描画受付開始
@@ -147,33 +103,27 @@ void glib::EndRender(const GLIB_PIPELINE_TYPE& usePipelineType)
 
 void glib::Release()
 {
-    WaitDrawDone();
     glib::Logger::CriticalLog("---=====================[GLIB]=====================---");
-    glib::Logger::CriticalLog("GLib release begin.");
+    glib::Logger::CriticalLog("GLibの解放処理を開始します。");
 
     SafeDelete(pTime);
-    glib::Logger::DebugLog("Time released successfully.");
+    glib::Logger::DebugLog("時間管理システムの解放に成功しました。");
 
     SafeDelete(pD3D12);
-    glib::Logger::DebugLog("D3D12 released successfully.");
-    
+    glib::Logger::DebugLog("Direct3D 12の解放に成功しました。");
+
     // Release the window
     if (pWindow->GetHWnd())
     {
         DestroyWindow(pWindow->GetHWnd());
         SafeDelete(pWindow);
-        glib::Logger::DebugLog("Window released successfully.");
+        glib::Logger::DebugLog("ウィンドウの解放に成功しました。");
     }
 
     // Log release message
-    glib::Logger::DebugLog("GLib released successfully.");
-    glib::Logger::CriticalLog("GLib release end.");
+    glib::Logger::DebugLog("GLibの解放が正常に完了しました。");
+    glib::Logger::CriticalLog("GLibの解放処理を終了します。");
     glib::Logger::CriticalLog("---=====================[GLIB]=====================---");
-}
-
-void glib::WaitDrawDone()
-{
-
 }
 
 void glib::RefreshDeltaTime()
@@ -234,6 +184,16 @@ void glib::SetWindowSize(int width, int height)
 glib::GLibWindow* glib::GetWindow()
 {
     return pWindow;
+}
+
+D3D12_VIEWPORT glib::GetViewport()
+{
+    return ViewPort;
+}
+
+D3D12_RECT glib::GetRect()
+{
+    return ScissorRect;
 }
 
 void glib::SetBackBufferCount(int count)
@@ -298,67 +258,17 @@ std::string glib::WStringToString(const std::wstring& wstr)
 
 void glib::RunProfile()
 {
-    std::string title = WStringToString(pWindow->GetDefaultName());
-
-    // Memory profiling  
-    MEMORYSTATUSEX memInfo;
-    memInfo.dwLength = sizeof(MEMORYSTATUSEX);
-    GlobalMemoryStatusEx(&memInfo);
-    DWORDLONG totalVirtualMem = memInfo.ullTotalPageFile;
-    DWORDLONG virtualMemUsed = memInfo.ullTotalPageFile - memInfo.ullAvailPageFile;
-    PROCESS_MEMORY_COUNTERS_EX pmc;
-    GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
-    SIZE_T virtualMemUsedByMe = pmc.PrivateUsage;
-    DWORDLONG totalPhysMem = memInfo.ullTotalPhys;
-    DWORDLONG physMemUsed = memInfo.ullTotalPhys - memInfo.ullAvailPhys;
-    SIZE_T physMemUsedByMe = pmc.WorkingSetSize;
-
-    // VRAM profiling  
-    /*DXGI_QUERY_VIDEO_MEMORY_INFO vramInfo = {};
-    ComPtr<IDXGIAdapter3> adapter;
-    HRESULT hr = pDevice->Get()->QueryInterface(IID_PPV_ARGS(&adapter));
-    if (SUCCEEDED(hr))
-    {
-        adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &vramInfo);
-    }
-    SIZE_T vramUsed = vramInfo.CurrentUsage / (1024 * 1024);
-
-    SIZE_T total = (physMemUsedByMe / (1024 * 1024)) + (virtualMemUsedByMe / (1024 * 1024));*/
-
-    // Update window title with memory usage  
-    std::string memoryInfo = "   |   [PhysMemUsed: " + std::to_string(physMemUsedByMe / (1024 * 1024)) + "MB";
-    memoryInfo += "VirtMemUsed: " + std::to_string(virtualMemUsedByMe / (1024 * 1024)) + "MB";
-    //memoryInfo += " TotalMemUsed : " + std::to_string(total) + "MB]";
-    //memoryInfo += " | " + "[VRAMUsed:" + std::to_string(vramUsed) + "MB]";
-
-    if(isRefreshTick)
-    {
-        static int frame;
-        static float fps;
-        if (++frame % 60 == 0)
-        {
-            fps = 1.0f / pTime->DeltaTime();
-        }
-        pWindow->SetName(StringToWString(title + "   |   [DeltaTime: " + std::to_string(pTime->DeltaTime()) + "ms]" + memoryInfo + "  |  " + "[Performance: " + std::to_string(static_cast<int>(fps)) + "fps]").c_str());
-    }
-    else
-    {
-        pWindow->SetName(StringToWString(title + "   |   [DeltaTime: " + std::to_string(pTime->DeltaTime()) + "ms]" + memoryInfo).c_str());
-    }
+    pD3D12->RunProfile();
 }
 
 void glib::BeginRecordPerformance()
 {
-    isRefreshTick = false;
-    QueryPerformanceFrequency(&freq);
-
-    QueryPerformanceCounter(&start);
+    pD3D12->BeginRecordPerformance();
 }
 
 void glib::EndRecordPerformance()
 {
-    QueryPerformanceCounter(&end);
-    isRefreshTick = true;
+    pD3D12->EndRecordPerformance();
 }
 
 void glib::SetMaxFPS(int fps)

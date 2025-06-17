@@ -1,4 +1,20 @@
 #pragma once
+// os
+#include <windows.h>
+#include <cstdint>
+
+// d3d
+#include <DirectXMath.h>
+#include <d3dx12.h>
+#include <d3d12.h>
+#include <dxgi1_4.h>
+
+/* pragma link */
+#pragma comment(lib, "d3d12.lib")
+#pragma comment(lib, "dxgi.lib")
+
+// profiler
+#include <psapi.h>
 
 #include <GLibWindow.h>
 #include <GLibLogger.h>
@@ -46,9 +62,6 @@ namespace glib
     // GLibを解放する
     void Release();
 
-    // 描画が完了するまで待機する
-    void WaitDrawDone();
-
     // DeltaTimeを更新する
     void RefreshDeltaTime();
 
@@ -78,6 +91,9 @@ namespace glib
     void SetWindowSize(int width, int height);
     // ウィンドウのポインタを取得する
     GLibWindow* GetWindow();
+
+    D3D12_VIEWPORT GetViewport();
+    D3D12_RECT GetRect();
 
     void SetBackBufferCount(int count);
 

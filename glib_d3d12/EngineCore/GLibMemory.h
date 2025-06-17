@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <list>
+#include <GLibLogger.h>
 
 namespace glib
 {
@@ -15,16 +16,26 @@ namespace glib
 		{
 			delete p;
 			p = nullptr;
+			Logger::FormatDebugLog("SafeDelete: ポインタを削除しました。");
+		}
+		else
+		{
+			Logger::FormatWarningLog("SafeDelete: nullptr のため削除をスキップしました。");
 		}
 	}
 
-	template < typename T>
+	template <typename T>
 	void SafeReleaseDX(T*& ptr)
 	{
 		if (ptr != nullptr)
 		{
 			ptr->Release();
 			ptr = nullptr;
+			Logger::FormatDebugLog("SafeReleaseDX: DirectX リソースを解放しました。");
+		}
+		else
+		{
+			Logger::FormatWarningLog("SafeReleaseDX: nullptr のため解放をスキップしました。");
 		}
 	}
 }

@@ -2,6 +2,7 @@
 #include "GLibWindow.h"
 #include "GLibMemory.h"
 #include "GLibDebug.h"
+#include "GLibBinaryLoader.h"
 
 #include <cassert>
 
@@ -19,13 +20,24 @@ bool glib::GLibD3D12Wrapper::init()
 {
     assert(initD3D());
 
+    HRESULT hr{};
+
+    // 頂点バッファ
     {
-        // 頂点データ
+        // 頂点データ  
         Vertex vertices[] =
         {
-            { XMFLOAT3(-1.0f, -1.0f, 0.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
-            { XMFLOAT3( 1.0f, -1.0f, 0.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
-            { XMFLOAT3( 0.0f,  1.0f, 0.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
+            // 前面  
+            { XMFLOAT3(-1.0f,  1.0f, -1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
+            { XMFLOAT3(1.0f,  1.0f, -1.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
+            { XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
+            { XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f) },
+
+            // 背面  
+            { XMFLOAT3(-1.0f,  1.0f,  1.0f), XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f) },
+            { XMFLOAT3(1.0f,  1.0f,  1.0f), XMFLOAT4(0.0f, 1.0f, 1.0f, 1.0f) },
+            { XMFLOAT3(1.0f, -1.0f,  1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
+            { XMFLOAT3(-1.0f, -1.0f,  1.0f), XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f) },
         };
 
         // ヒーププロパティ
@@ -51,24 +63,23 @@ bool glib::GLibD3D12Wrapper::init()
         desc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
         // リソース生成
-        HRESULT hr{};
         hr = m_Device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(m_VB.GetAddressOf()));
         if (FAILED(hr))
         {
-            glib::Logger::FormatCriticalLog("Failed to create resource. HRESULT=0x%x", hr);
+            glib::Logger::FormatCriticalLog("リソースの生成に失敗しました。HRESULT=0x%x", hr);
             return false;
         }
-        glib::Logger::FormatDebugLog("Successfully created resource.");
+        glib::Logger::FormatDebugLog("リソースの生成に成功しました。");
 
         // マップ
         void* ptr = nullptr;
         hr = m_VB->Map(0, nullptr, &ptr);
         if (FAILED(hr))
         {
-            glib::Logger::FormatCriticalLog("Failed to mapped resource. HRESULT=0x%x", hr);
+            glib::Logger::FormatCriticalLog("リソースのマップに失敗しました。 HRESULT=0x%x", hr);
             return false;
         }
-        glib::Logger::FormatDebugLog("Successfully mapped resource.");
+        glib::Logger::FormatDebugLog("リソースのマップに成功しました。");
 
         // 頂点データをマップ先に
         memcpy(ptr, vertices, sizeof(vertices));
@@ -82,6 +93,81 @@ bool glib::GLibD3D12Wrapper::init()
         m_VBV.StrideInBytes = static_cast<UINT>(sizeof(Vertex));
     }
 
+    // インデックスバッファ
+    {
+
+        // インデックスデータ  
+        uint32_t indices[] =
+        {
+            // 前面  
+            0, 1, 2, 0, 2, 3,
+            // 背面  
+            4, 6, 5, 4, 7, 6,
+            // 左側面  
+            4, 5, 1, 4, 1, 0,
+            // 右側面  
+            3, 2, 6, 3, 6, 7,
+            // 上面  
+            1, 5, 6, 1, 6, 2,
+            // 底面  
+            4, 0, 3, 4, 3, 7,
+        };
+
+        ibvcount = _countof(indices);
+
+        // ヒーププロパティ
+        D3D12_HEAP_PROPERTIES prop{};
+        prop.Type = D3D12_HEAP_TYPE_UPLOAD;
+        prop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+        prop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+        prop.CreationNodeMask = 1;
+        prop.VisibleNodeMask = 1;
+
+        // リソース設定
+        D3D12_RESOURCE_DESC desc{};
+        desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        desc.Alignment = 0;
+        desc.Width = sizeof(indices);
+        desc.Height = 1;
+        desc.DepthOrArraySize = 1;
+        desc.MipLevels = 1;
+        desc.Format = DXGI_FORMAT_UNKNOWN;
+        desc.SampleDesc.Count = 1;
+        desc.SampleDesc.Quality = 0;
+        desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+        // リソース生成
+        hr = m_Device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(m_IB.GetAddressOf()));
+        if (FAILED(hr))
+        {
+            glib::Logger::FormatCriticalLog("リソースの生成に失敗しました。HRESULT=0x%x", hr);
+            return false;
+        }
+        glib::Logger::FormatDebugLog("リソースの生成に成功しました。");
+
+        // マップ
+        void* ptr = nullptr;
+        hr = m_IB->Map(0, nullptr, &ptr);
+        if (FAILED(hr))
+        {
+            glib::Logger::FormatCriticalLog("リソースのマップに失敗しました。 HRESULT=0x%x", hr);
+            return false;
+        }
+        glib::Logger::FormatDebugLog("リソースのマップに成功しました。");
+
+        // 頂点データをマップ先に
+        memcpy(ptr, indices, sizeof(indices));
+
+        // マップ解除
+        m_IB->Unmap(0, nullptr);
+
+        // 頂点バッファビューの設定
+        m_IBV.BufferLocation = m_IB->GetGPUVirtualAddress();
+        m_IBV.Format = DXGI_FORMAT_R32_UINT;
+        m_IBV.SizeInBytes = static_cast<UINT>(sizeof(indices));
+    }
+
     // ディスクリプタヒープの生成
     {
         D3D12_DESCRIPTOR_HEAP_DESC desc{};
@@ -90,14 +176,13 @@ bool glib::GLibD3D12Wrapper::init()
         desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
         desc.NodeMask = 0;
 
-        HRESULT hr{};
         hr = m_Device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(m_DescriptorHeaps[GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].GetAddressOf()));
         if (FAILED(hr))
         {
-            glib::Logger::FormatCriticalLog("Failed to create descriptor heap. HRESULT=0x%x", hr);
+            glib::Logger::FormatCriticalLog("ディスクリプタヒープの作成に失敗しました。 HRESULT=0x%x", hr);
             return false;
         }
-        glib::Logger::FormatDebugLog("Successfully create descriptor heap.");
+        glib::Logger::FormatDebugLog("ディスクリプタヒープの作成に成功しました。");
     }
 
     // 定数バッファ生成
@@ -123,18 +208,196 @@ bool glib::GLibD3D12Wrapper::init()
         desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
         desc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
+        for (UINT32 i = 0; i < m_FrameCount; i++)
+        {
+            m_CB.push_back(GLibComPtr<ID3D12Resource>());
+            m_CBVs.push_back(ConstantBufferView<Transform>());
+        }
+
         auto incrementSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-        for (int i = 0; i < m_FrameCount; i++)
+        for (UINT32 i = 0; i < m_FrameCount; i++)
         {
             // リソース生成
-            auto hr = m_Device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(m_CBVs[i].GetAddressOf()));
+            hr = m_Device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(m_CB[i].GetAddressOf()));
             if (FAILED(hr))
             {
-                glib::Logger::FormatCriticalLog("Failed to create resource. HRESULT=0x%x", hr);
+                glib::Logger::FormatCriticalLog("リソースの作成に失敗しました。 HRESULT=0x%x", hr);
                 return false;
             }
-            glib::Logger::FormatDebugLog("Successfully create resource.");
+            glib::Logger::FormatDebugLog("リソースの作成に成功しました。");
+
+            auto address = m_CB[i]->GetGPUVirtualAddress();
+            auto handleCPU = m_DescriptorHeaps[GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->GetCPUDescriptorHandleForHeapStart();
+            auto handleGPU = m_DescriptorHeaps[GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->GetGPUDescriptorHandleForHeapStart();
+
+            handleCPU.ptr += incrementSize * i;
+            handleGPU.ptr += incrementSize * i;
+
+            // 定数バッファビュー設定
+            m_CBVs[i].HandleCPU = handleCPU;
+            m_CBVs[i].HandleGPU = handleGPU;
+            m_CBVs[i].Desc.BufferLocation = address;
+            m_CBVs[i].Desc.SizeInBytes = sizeof(Transform);
+
+            // 定数バッファビュー生成
+            m_Device->CreateConstantBufferView(&m_CBVs[i].Desc, handleCPU);
+
+            // マッピング
+            hr = m_CB[i]->Map(0, nullptr, reinterpret_cast<void**>(&m_CBVs[i].pBuffer));
+            if (FAILED(hr))
+            {
+                glib::Logger::FormatCriticalLog("リソースのマッピングに失敗しました。 HRESULT=0x%x", hr);
+                return false;
+            }
+            glib::Logger::FormatDebugLog("リソースのマッピングに成功しました。");
+
+            auto eyePos = XMVectorSet(0.0f, 0.0f, 5.0f, 0.0f);
+            auto targetPos = XMVectorZero();
+            auto upward = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+            auto fovY = XMConvertToRadians(37.5f);
+            auto aspect = static_cast<float>(glib::GetWindow()->GetClientWidth()) / static_cast<float>(glib::GetWindow()->GetClientHeight());
+
+            // 変換行列
+            m_CBVs[i].pBuffer->World = XMMatrixIdentity();
+            m_CBVs[i].pBuffer->View = XMMatrixLookAtRH(eyePos, targetPos, upward);
+            m_CBVs[i].pBuffer->Proj = XMMatrixPerspectiveFovRH(fovY, aspect, 0.01f, 100000.0f);
         }
+    }
+
+    // ルートシグネチャ生成
+    {
+        auto flag = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+        flag |= D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
+        flag |= D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
+        flag |= D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+
+        // ルートパラメーター
+        D3D12_ROOT_PARAMETER param{};
+        param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+        param.Descriptor.ShaderRegister = 0;
+        param.Descriptor.RegisterSpace = 0;
+        param.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+
+        // ルートシグネチャ
+        D3D12_ROOT_SIGNATURE_DESC desc{};
+        desc.NumParameters = 1;
+        desc.NumStaticSamplers = 0;
+        desc.pParameters = &param;
+        desc.pStaticSamplers = nullptr;
+        desc.Flags = flag;
+
+        GLibComPtr<ID3DBlob> Blob = nullptr;
+        GLibComPtr<ID3DBlob> ErrorBlob = nullptr;
+
+        // シリアライズ
+        hr = D3D12SerializeRootSignature(&desc, D3D_ROOT_SIGNATURE_VERSION_1_0, Blob.GetAddressOf(), ErrorBlob.GetAddressOf());
+        if (FAILED(hr))
+        {
+            glib::Logger::FormatCriticalLog("ルートシグネチャのシリアライズに失敗しました。HRESULT=0x%x", hr);
+            return false;
+        }
+        glib::Logger::FormatDebugLog("ルートシグネチャのシリアライズに成功しました。");
+
+        // ルートシグネチャ生成
+        hr = m_Device->CreateRootSignature(0, Blob->GetBufferPointer(), Blob->GetBufferSize(), IID_PPV_ARGS(m_Rootsignature.GetAddressOf()));
+        if (FAILED(hr))
+        {
+            glib::Logger::FormatCriticalLog("ルートシグネチャの生成に失敗しました。HRESULT=0x%x", hr);
+            return false;
+        }
+        glib::Logger::FormatDebugLog("ルートシグネチャの生成に成功しました。");
+    }
+
+    // パイプラインステート生成
+    {
+        // 入力レイアウト(InputLayout)
+        D3D12_INPUT_ELEMENT_DESC elements[2]{};
+        elements[0].SemanticName = "POSITION";
+        elements[0].SemanticIndex = 0;
+        elements[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+        elements[0].InputSlot = 0;
+        elements[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+        elements[0].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+        elements[0].InstanceDataStepRate = 0;
+
+        elements[1].SemanticName = "COLOR";
+        elements[1].SemanticIndex = 0;
+        elements[1].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+        elements[1].InputSlot = 0;
+        elements[1].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+        elements[1].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+        elements[1].InstanceDataStepRate = 0;
+
+        // ラスタライザーステートの設定
+        D3D12_RASTERIZER_DESC descRS{};
+        descRS.FillMode = D3D12_FILL_MODE_SOLID;
+        descRS.CullMode = D3D12_CULL_MODE_NONE;
+        descRS.FrontCounterClockwise = FALSE;
+        descRS.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+        descRS.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+        descRS.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+        descRS.DepthClipEnable = FALSE;
+        descRS.MultisampleEnable = FALSE;
+        descRS.AntialiasedLineEnable = FALSE;
+        descRS.ForcedSampleCount = 0;
+        descRS.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+        
+        // レンダーターゲットのブレンド設定
+        D3D12_RENDER_TARGET_BLEND_DESC descRTBS =
+        {
+            FALSE, FALSE,
+            D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD,
+            D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD,
+            D3D12_LOGIC_OP_NOOP,
+            D3D12_COLOR_WRITE_ENABLE_ALL
+        };
+
+        // ブレンドステートの設定
+        D3D12_BLEND_DESC descBS{};
+        descBS.AlphaToCoverageEnable = FALSE;
+        descBS.IndependentBlendEnable = FALSE;
+        for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+        {
+            descBS.RenderTarget[i] = descRTBS;
+        }
+
+        // ここでやっている複数の設定(DESC)は全て、一つのパイプラインの設定をしています。
+        // 最終的にまとめてようやく、一つのパイプラインが出来上がります。
+        // 細かな設定は、パイプラインの種類によって異なるので、いろいろ調べつつ、自分が求めているパイプラインにカスタムしよう。
+#ifdef _DEBUG
+        glib::GLibBinaryLoader vs("x64/Debug/SpriteVS.cso");
+        glib::GLibBinaryLoader ps("x64/Debug/SpritePS.cso");
+#else
+        glib::GLibBinaryLoader vs("x64/Release/SpriteVS.cso");
+        glib::GLibBinaryLoader ps("x64/Release/SpritePS.cso");
+#endif
+        // パイプラインステートの設定
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};
+        desc.InputLayout = { elements, _countof(elements) };
+        desc.pRootSignature = m_Rootsignature.Get();
+        desc.VS = {vs.Code(), vs.Size()};
+        desc.PS = {ps.Code(), ps.Size()};
+        desc.RasterizerState = descRS;
+        desc.BlendState = descBS;
+        desc.DepthStencilState.DepthEnable = FALSE;
+        desc.DepthStencilState.StencilEnable = FALSE;
+        desc.SampleMask = UINT_MAX;
+        desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        desc.NumRenderTargets = 1;
+        desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        desc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+        desc.SampleDesc.Count = 1;
+        desc.SampleDesc.Quality = 0;
+
+        // パイプラインステート生成
+        hr = m_Device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(m_PSO.GetAddressOf()));
+        if (FAILED(hr))
+        {
+            glib::Logger::FormatCriticalLog("パイプラインステートの作成に失敗しました。 HRESULT=0x%x", hr);
+            return false;
+        }
+        glib::Logger::FormatDebugLog("パイプラインステートの作成に成功しました。");
     }
 
     return true;
@@ -173,26 +436,26 @@ bool glib::GLibD3D12Wrapper::initD3D()
         hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(m_Device.GetAddressOf()));
         if (FAILED(hr))
         {
-            glib::Logger::FormatCriticalLog("Failed to create d3d12 device. HRESULT=0x%x", hr);
+            glib::Logger::FormatCriticalLog("D3D12デバイスの作成に失敗しました。 HRESULT=0x%x", hr);
             return false;
         }
-        glib::Logger::FormatDebugLog("Successfully created d3d12 device.");
+        glib::Logger::FormatDebugLog("D3D12デバイスの作成に成功しました。");
     }
 
     // コマンドキュー
     {
         D3D12_COMMAND_QUEUE_DESC desc{};
-        desc.Type       = D3D12_COMMAND_LIST_TYPE_DIRECT;
-        desc.Priority   = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-        desc.Flags      = D3D12_COMMAND_QUEUE_FLAG_NONE;
-        desc.NodeMask   = 0;
+        desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+        desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+        desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+        desc.NodeMask = 0;
         hr = m_Device->CreateCommandQueue(&desc, IID_PPV_ARGS(m_CommandQueue.GetAddressOf()));
         if (FAILED(hr))
         {
-            glib::Logger::FormatCriticalLog("Failed to create d3d12 command queue. HRESULT=0x%x", hr);
+            glib::Logger::FormatCriticalLog("D3D12コマンドキューの作成に失敗しました。 HRESULT=0x%x", hr);
             return false;
         }
-        glib::Logger::FormatDebugLog("Successfully created d3d12 command queue.");
+        glib::Logger::FormatDebugLog("D3D12コマンドキューの作成に成功しました。");
     }
 
     // スワップチェイン
@@ -202,31 +465,31 @@ bool glib::GLibD3D12Wrapper::initD3D()
         hr = CreateDXGIFactory1(IID_PPV_ARGS(&factory));
         if (FAILED(hr))
         {
-            glib::Logger::FormatCriticalLog("Failed to create dxgi factory4. HRESULT=0x%x", hr);
+            glib::Logger::FormatCriticalLog("DXGIファクトリの作成に失敗しました。 HRESULT=0x%x", hr);
             return false;
         }
-        glib::Logger::FormatDebugLog("Successfully created dxgi factory4.");
+        glib::Logger::FormatDebugLog("DXGIファクトリの作成に成功しました。");
 
         // スワップチェインの設定
         DXGI_SWAP_CHAIN_DESC desc{};
 
         m_FrameCount = (UINT32)glib::GetBackBufferCount();
 
-        desc.BufferDesc.Width                       = (UINT)glib::GetWindow()->GetClientWidth();
-        desc.BufferDesc.Height                      = (UINT)glib::GetWindow()->GetClientHeight();
-        desc.BufferDesc.RefreshRate.Numerator       = (UINT)glib::GetMaxFPS();
-        desc.BufferDesc.RefreshRate.Denominator     = 1;
-        desc.BufferDesc.ScanlineOrdering            = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-        desc.BufferDesc.Scaling                     = DXGI_MODE_SCALING_UNSPECIFIED;
-        desc.BufferDesc.Format                      = DXGI_FORMAT_R8G8B8A8_UNORM;
-        desc.SampleDesc.Count                       = 1;
-        desc.SampleDesc.Quality                     = 0;
-        desc.BufferUsage                            = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        desc.BufferCount                            = m_FrameCount;
-        desc.OutputWindow                           = glib::GetWindow()->GetHWnd();
-        desc.Windowed                               = TRUE;
-        desc.SwapEffect                             = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-        desc.Flags                                  = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+        desc.BufferDesc.Width = (UINT)glib::GetWindow()->GetClientWidth();
+        desc.BufferDesc.Height = (UINT)glib::GetWindow()->GetClientHeight();
+        desc.BufferDesc.RefreshRate.Numerator = (UINT)glib::GetMaxFPS();
+        desc.BufferDesc.RefreshRate.Denominator = 1;
+        desc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+        desc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+        desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        desc.SampleDesc.Count = 1;
+        desc.SampleDesc.Quality = 0;
+        desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+        desc.BufferCount = m_FrameCount;
+        desc.OutputWindow = glib::GetWindow()->GetHWnd();
+        desc.Windowed = TRUE;
+        desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+        desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
         // スワップチェインの生成
         IDXGISwapChain* swapChain{};
@@ -234,22 +497,22 @@ bool glib::GLibD3D12Wrapper::initD3D()
         hr = factory->CreateSwapChain(m_CommandQueue.Get(), &desc, &swapChain);
         if (FAILED(hr))
         {
-            glib::Logger::FormatCriticalLog("Failed to create dxgi swapchain. HRESULT=0x%x", hr);
+            glib::Logger::FormatCriticalLog("DXGIスワップチェインの作成に失敗しました。 HRESULT=0x%x", hr);
             factory.Reset();
             return false;
         }
-        glib::Logger::FormatDebugLog("Successfully created dxgi swapchain.");
+        glib::Logger::FormatDebugLog("DXGIスワップチェインの作成に成功しました。");
 
         // IDXGISwapChain3を取得
         hr = swapChain->QueryInterface(IID_PPV_ARGS(m_SwapChain.GetAddressOf()));
         if (FAILED(hr))
         {
-            glib::Logger::FormatCriticalLog("Failed to create dxgi swapchain3. HRESULT=0x%x", hr);
+            glib::Logger::FormatCriticalLog("DXGIスワップチェイン3の作成に失敗しました。 HRESULT=0x%x", hr);
             factory.Reset();
             glib::SafeReleaseDX(swapChain);
             return false;
         }
-        glib::Logger::FormatDebugLog("Successfully created dxgi swapchain3.");
+        glib::Logger::FormatDebugLog("DXGIスワップチェイン3の作成に成功しました。");
 
         // バックバッファ番号を取得
         m_FrameIndex = m_SwapChain->GetCurrentBackBufferIndex();
@@ -267,10 +530,10 @@ bool glib::GLibD3D12Wrapper::initD3D()
             hr = m_Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_CommandAllocators[i].GetAddressOf()));
             if (FAILED(hr))
             {
-                glib::Logger::FormatCriticalLog("Failed to create d3d12 command allocator [%d]. HRESULT=0x%x", i, hr);
+                glib::Logger::FormatCriticalLog("D3D12コマンドアロケータの作成に失敗しました。 [%d]. HRESULT=0x%x", i, hr);
                 return false;
             }
-            glib::Logger::FormatDebugLog("Successfully created d3d12 command allocator.");
+            glib::Logger::FormatDebugLog("D3D12コマンドアロケータの作成に成功しました。");
         }
     }
 
@@ -279,10 +542,10 @@ bool glib::GLibD3D12Wrapper::initD3D()
         hr = m_Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_CommandAllocators[m_FrameIndex].Get(), nullptr, IID_PPV_ARGS(m_CommandList.GetAddressOf()));
         if (FAILED(hr))
         {
-            glib::Logger::FormatCriticalLog("Failed to create d3d12 command list. HRESULT=0x%x", hr);
+            glib::Logger::FormatCriticalLog("D3D12コマンドリストの作成に失敗しました。 HRESULT=0x%x", hr);
             return false;
         }
-        glib::Logger::FormatDebugLog("Successfully created d3d12 command list.");
+        glib::Logger::FormatDebugLog("D3D12コマンドリストの作成に成功しました。");
     }
 
     // レンダーターゲットビュー
@@ -304,10 +567,10 @@ bool glib::GLibD3D12Wrapper::initD3D()
         hr = m_Device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(m_DescriptorHeaps[GLIB_DESCRIPTOR_HEAP_TYPE_RTV].GetAddressOf()));
         if (FAILED(hr))
         {
-            glib::Logger::FormatCriticalLog("Failed to create d3d12 rtv descriptor heap. HRESULT=0x%x", hr);
+            glib::Logger::FormatCriticalLog("D3D12 RTVディスクリプタヒープの作成に失敗しました。 HRESULT=0x%x", hr);
             return false;
         }
-        glib::Logger::FormatDebugLog("Successfully created d3d12 rtv descriptor heap.");
+        glib::Logger::FormatDebugLog("D3D12 RTVディスクリプタヒープの作成に成功しました。");
 
         auto handle = m_DescriptorHeaps[GLIB_DESCRIPTOR_HEAP_TYPE_RTV]->GetCPUDescriptorHandleForHeapStart();
         auto incrementSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
@@ -317,10 +580,10 @@ bool glib::GLibD3D12Wrapper::initD3D()
             hr = m_SwapChain->GetBuffer(i, IID_PPV_ARGS(m_ColorBuffers[i].GetAddressOf()));
             if (FAILED(hr))
             {
-                glib::Logger::FormatCriticalLog("Failed to retrieve buffer from swap chain at index [%d]. HRESULT=0x%08X", i, hr);
+                glib::Logger::FormatCriticalLog("スワップチェインからのバッファ取得に失敗しました（インデックス [%d]. HRESULT=0x%08X", i, hr);
                 return false;
             }
-            glib::Logger::FormatDebugLog("Successfully retrieved buffer from swap chain and created RTV descriptor.");
+            glib::Logger::FormatDebugLog("スワップチェインからバッファ取得とRTV記述子作成に成功しました。");
 
             D3D12_RENDER_TARGET_VIEW_DESC viewDesc{};
             viewDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
@@ -344,53 +607,34 @@ bool glib::GLibD3D12Wrapper::initD3D()
         {
             m_FenceCounters.push_back(UINT64());
             m_FenceCounters[i] = 0;
-            glib::Logger::FormatDebugLog("Successfully fence counters[%d] reset.", i);
+            glib::Logger::FormatDebugLog("フェンスカウンタ[%d]のリセットに成功しました。", i);
         }
 
         // フェンス生成  
-        hr = m_Device->CreateFence(m_FenceCounters[m_FrameIndex], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_Fence.GetAddressOf()));  
-        if (FAILED(hr))  
-        {  
-            glib::Logger::FormatCriticalLog("Failed to create d3d12 fence. HRESULT=0x%08X", hr);  
-            return false;  
-        }  
-        glib::Logger::FormatDebugLog("Successfully created d3d12 fence.");
+        hr = m_Device->CreateFence(m_FenceCounters[m_FrameIndex], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_Fence.GetAddressOf()));
+        if (FAILED(hr))
+        {
+            glib::Logger::FormatCriticalLog("D3D12フェンスの作成に失敗しました。 HRESULT=0x%08X", hr);
+            return false;
+        }
+        glib::Logger::FormatDebugLog("D3D12フェンスの作成に成功しました。");
 
         m_FenceCounters[m_FrameIndex]++;
 
         // イベント生成  
-        m_FenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);  
-        if (m_FenceEvent == nullptr)  
-        {  
-           glib::Logger::FormatCriticalLog("Failed to create fence event.");  
-           return false;  
-        }  
-        glib::Logger::FormatDebugLog("Successfully created fence event.");
+        m_FenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+        if (m_FenceEvent == nullptr)
+        {
+            glib::Logger::FormatCriticalLog("フェンスイベントの作成に失敗しました。");
+            return false;
+        }
+        glib::Logger::FormatDebugLog("フェンスイベントの作成に成功しました。");
     }
 
     // コマンドリスト閉じる
     m_CommandList->Close();
 
     return true;
-}
-
-void glib::GLibD3D12Wrapper::waitGpu()
-{
-    assert(m_CommandQueue);
-    assert(m_Fence);
-    assert(m_FenceEvent);
-
-    // シグナル
-    m_CommandQueue->Signal(m_Fence.Get(), m_FenceCounters[m_FrameIndex]);
-
-    // 完了時にイベントセット
-    m_Fence->SetEventOnCompletion(m_FenceCounters[m_FrameIndex], m_FenceEvent);
-
-    // 待機処理
-    WaitForSingleObjectEx(m_FenceEvent, INFINITE, FALSE);
-
-    // カウンターフヤス
-    m_FenceCounters[m_FrameIndex]++;
 }
 
 void glib::GLibD3D12Wrapper::present(UINT32 interval)
@@ -400,7 +644,7 @@ void glib::GLibD3D12Wrapper::present(UINT32 interval)
 
     if (FAILED(hr))
     {
-        glib::Logger::FormatWarningLog("Present failed. HRESULT=0x%08X", hr);
+        glib::Logger::FormatWarningLog("画面描画（Present）に失敗しました。 HRESULT=0x%08X", hr);
     }
 
     // シグナル
@@ -423,7 +667,7 @@ void glib::GLibD3D12Wrapper::present(UINT32 interval)
 
 void glib::GLibD3D12Wrapper::termD3D()
 {
-    waitGpu();
+    WaitGpu();
 
     CloseHandle(m_FenceEvent);
     m_FenceEvent = nullptr;
@@ -461,6 +705,25 @@ void glib::GLibD3D12Wrapper::BeginRender()
 
     // レンダーターゲットビューのクリア
     m_CommandList->ClearRenderTargetView(m_HandlesRTV[m_FrameIndex], &m_ClearColor.x, 0, nullptr);
+
+    // 描画
+    {
+        m_Rotate += XMConvertToRadians(45.0f) * glib::DeltaTime();
+        m_CBVs[m_FrameIndex].pBuffer->World = XMMatrixRotationZ(m_Rotate) * XMMatrixRotationX(m_Rotate) * XMMatrixRotationY(m_Rotate);
+
+        m_CommandList->SetGraphicsRootSignature(m_Rootsignature.Get());
+        m_CommandList->SetDescriptorHeaps(1, m_DescriptorHeaps[GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].GetAddressOf());
+        m_CommandList->SetGraphicsRootConstantBufferView(0, m_CBVs[m_FrameIndex].Desc.BufferLocation);
+        m_CommandList->SetPipelineState(m_PSO.Get());
+        m_CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        m_CommandList->IASetVertexBuffers(0, 1, &m_VBV);
+        m_CommandList->IASetIndexBuffer(&m_IBV);
+        auto viewport = glib::GetViewport();
+        m_CommandList->RSSetViewports(1, &viewport);
+        auto rect = glib::GetRect();
+        m_CommandList->RSSetScissorRects(1, &rect);
+        m_CommandList->DrawIndexedInstanced(ibvcount, 1, 0, 0, 0);
+    }
 }
 
 void glib::GLibD3D12Wrapper::EndRender()
@@ -492,10 +755,94 @@ void glib::GLibD3D12Wrapper::EndRender()
     // 次フレームへ
     m_FrameIndex = m_SwapChain->GetCurrentBackBufferIndex();
 
-    waitGpu();
+    WaitGpu();
+}
+
+void glib::GLibD3D12Wrapper::BeginRecordPerformance()
+{
+    m_RefreshTick = false;
+    QueryPerformanceFrequency(&m_Freq);
+    QueryPerformanceCounter(&m_Start);
+}
+
+void glib::GLibD3D12Wrapper::EndRecordPerformance()
+{
+    QueryPerformanceCounter(&m_End);
+    m_RefreshTick = true;
+}
+
+void glib::GLibD3D12Wrapper::RunProfile()
+{
+    std::string title = glib::WStringToString(glib::GetWindow()->GetDefaultName());
+
+    // メモリ使用量取得
+    MEMORYSTATUSEX memInfo;
+    memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+    GlobalMemoryStatusEx(&memInfo);
+    PROCESS_MEMORY_COUNTERS_EX pmc;
+    GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
+
+    SIZE_T physMemUsedByMe = pmc.WorkingSetSize;
+    SIZE_T virtualMemUsedByMe = pmc.PrivateUsage;
+
+    // VRAM使用量取得
+    SIZE_T vramUsed = 0;
+    DXGI_QUERY_VIDEO_MEMORY_INFO vramInfo = {};
+    GLibComPtr<IDXGIAdapter3> adapter;
+    if (SUCCEEDED(m_Device->QueryInterface(IID_PPV_ARGS(&adapter))))
+    {
+        if (SUCCEEDED(adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &vramInfo)))
+        {
+            vramUsed = vramInfo.CurrentUsage / (1024 * 1024); // MB単位
+        }
+    }
+
+    std::string memoryInfo = "   |   [PhysMemUsed: " + std::to_string(physMemUsedByMe / (1024 * 1024)) + "MB";
+    memoryInfo += " VirtMemUsed: " + std::to_string(virtualMemUsedByMe / (1024 * 1024)) + "MB";
+    memoryInfo += " VRAMUsed: " + std::to_string(vramUsed) + "MB]";
+
+    if (m_RefreshTick)
+    {
+        static int frame = 0;
+        static float fps = 0.0f;
+        if (++frame % 60 == 0)
+        {
+            float delta = static_cast<float>(DeltaTime());
+            fps = 1.0f / delta;
+        }
+
+        float delta = static_cast<float>(DeltaTime());
+
+        glib::GetWindow()->SetName(glib::StringToWString(
+            title + "   |   [DeltaTime: " + std::to_string(delta) + "s]" +
+            memoryInfo + "  |  [Performance: " + std::to_string(static_cast<int>(fps)) + "fps]").c_str());
+    }
+    else
+    {
+        glib::GetWindow()->SetName(glib::StringToWString(title + memoryInfo).c_str());
+    }
 }
 
 void glib::GLibD3D12Wrapper::SetClearColor(const XMFLOAT4& color)
 {
     m_ClearColor = color;
+}
+
+void glib::GLibD3D12Wrapper::WaitGpu()
+{
+    assert(m_CommandQueue);
+    assert(m_Fence);
+    assert(m_FenceEvent);
+
+    // シグナル
+    m_CommandQueue->Signal(m_Fence.Get(), m_FenceCounters[m_FrameIndex]);
+
+    // 完了時にイベントセット
+    m_Fence->SetEventOnCompletion(m_FenceCounters[m_FrameIndex], m_FenceEvent);
+
+    // 待機処理
+    WaitForSingleObjectEx(m_FenceEvent, INFINITE, FALSE);
+
+    // カウンターフヤス
+    m_FenceCounters[m_FrameIndex]++;
 }

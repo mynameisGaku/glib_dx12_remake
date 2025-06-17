@@ -14,7 +14,7 @@ namespace glib
 
         void Finalize(const LPCWSTR& wndName, int width, int height);
 
-        void SetName(const LPCWSTR& wndName);
+        void SetName(const LPCWSTR& wndName, bool isOutputLog = false);
         void SetPos(int x, int y);
         void SetAspect(float aspect);
         void SetStyle(DWORD style);

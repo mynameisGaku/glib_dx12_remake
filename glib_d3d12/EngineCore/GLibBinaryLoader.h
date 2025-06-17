@@ -12,10 +12,10 @@ namespace glib
             std::ifstream ifs(filename, std::ios::binary);
             if (ifs.fail())
             {
-                glib::Logger::FormatErrorLog("Failed to open Binary file: %s", filename);
+                glib::Logger::FormatErrorLog("バイナリファイルを開けませんでした: %s", filename);
                 return;
             }
-            glib::Logger::FormatInfoLog("Loading Binary file: %s", filename);
+            glib::Logger::FormatInfoLog("バイナリファイルを読み込んでいます: %s", filename);
             m_Succeeded = true;
             std::istreambuf_iterator<char> first(ifs);
             std::istreambuf_iterator<char> last;
@@ -23,12 +23,12 @@ namespace glib
             ifs.close();
             if (m_Buffer.empty())
             {
-                glib::Logger::FormatErrorLog("Binary file is empty: %s", filename);
+                glib::Logger::FormatErrorLog("バイナリファイルが空でした: %s", filename);
                 m_Succeeded = false;
             }
             else
             {
-                glib::Logger::FormatInfoLog("Loaded Binary file size: %zu bytes", m_Buffer.size());
+                glib::Logger::FormatInfoLog("バイナリファイルの読み込み完了（サイズ: %zu バイト）", m_Buffer.size());
             }
         }
         bool Succeeded() const

@@ -28,11 +28,20 @@ namespace glib
             XMFLOAT4 Color;
         };
 
-        struct Transform
+        struct alignas(256) Transform
         {
             XMMATRIX World;
             XMMATRIX View;
             XMMATRIX Proj;
+        };
+
+        template<typename T>
+        struct ConstantBufferView
+        {
+            D3D12_CONSTANT_BUFFER_VIEW_DESC Desc;
+            D3D12_CPU_DESCRIPTOR_HANDLE     HandleCPU;
+            D3D12_GPU_DESCRIPTOR_HANDLE     HandleGPU;
+            T*                              pBuffer;
         };
 
         /* members */
@@ -55,22 +64,37 @@ namespace glib
 
         GLibComPtr<ID3D12Resource>                      m_VB{};
         D3D12_VERTEX_BUFFER_VIEW                        m_VBV{};
-        //vector<ConstantBufferView<Transform>>         m_CBVs{};
+        GLibComPtr<ID3D12Resource>                      m_IB{};
+        D3D12_INDEX_BUFFER_VIEW                         m_IBV{};
+        UINT32 ibvcount;
+        vector<GLibComPtr<ID3D12Resource>>              m_CB{};
+        vector<ConstantBufferView<Transform>>           m_CBVs{};
 
 
         XMFLOAT4                                        m_ClearColor;
+        float m_Rotate;
+
+        /* profiler */
+        LARGE_INTEGER m_Freq{};
+        LARGE_INTEGER m_Start{}, m_End{};
+        bool m_RefreshTick = false;
 
         /* methods */
         bool init();
         void term();
         bool initD3D();
         void termD3D();
-        void waitGpu();
         void present(UINT32 interval);
     public:
         /* methods */
         void BeginRender();
         void EndRender();
+
+        void BeginRecordPerformance();
+        void EndRecordPerformance();
+        void RunProfile();
+
+        void WaitGpu();
 
         void SetClearColor(const XMFLOAT4& color);
     };

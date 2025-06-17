@@ -1,7 +1,48 @@
 #pragma once
-#include <stdio.h>
-#include <Windows.h>
+
+#include <windows.h>
 #include <string>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
+#include <stdio.h>
+
+inline std::wstring ConvertUTF8ToWide(const std::string& utf8Str)
+{
+    if (utf8Str.empty()) return L"";
+
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, utf8Str.c_str(), -1, nullptr, 0);
+    if (size_needed == 0) return L"[変換失敗]";
+
+    std::wstring wideStr(size_needed, 0);
+    MultiByteToWideChar(CP_UTF8, 0, utf8Str.c_str(), -1, &wideStr[0], size_needed);
+    return wideStr;
+}
+
+inline std::wstring ConvertAnsiToWide(const std::string& ansiStr)
+{
+    if (ansiStr.empty()) return L"";
+
+    int size_needed = MultiByteToWideChar(CP_ACP, 0, ansiStr.c_str(), -1, nullptr, 0);
+    if (size_needed == 0) return L"[変換失敗]";
+
+    std::wstring wideStr(size_needed, 0);
+    MultiByteToWideChar(CP_ACP, 0, ansiStr.c_str(), -1, &wideStr[0], size_needed);
+    return wideStr;
+}
+
+inline std::string GetCurrentTimeString()
+{
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+    std::tm local_tm;
+    localtime_s(&local_tm, &now_c);
+
+    std::ostringstream oss;
+    oss << "[" << std::put_time(&local_tm, "%H:%M:%S") << "]";
+    return oss.str();
+}
 
 namespace glib
 {
@@ -18,53 +59,54 @@ namespace glib
 
         static void Log(LogLevel level, const char* message)
         {
-            std::string logMessage = "[NULL MESSAGE]";
+            std::string logMessage;
 
             switch (level)
             {
             case LogLevel::Debug:
-                // Debugレベルのログは通常、開発中にのみ使用されるため、特に目立たせない
                 logMessage = "[DEBUG] [GLIB] ";
                 break;
             case LogLevel::Info:
-                // Infoレベルのログは通常、アプリケーションの状態や進行状況を示すために使用される
                 logMessage = "[INFO] [GLIB] ";
                 break;
             case LogLevel::Warning:
-                // Warningレベルのログは、潜在的な問題を示すために使用される
                 logMessage = "[WARNING] [GLIB] ";
                 break;
             case LogLevel::Error:
-                // Errorレベルのログは、アプリケーションの動作に影響を与える問題を示すために使用される
                 logMessage = "[ERROR] [GLIB] ";
                 break;
             case LogLevel::Critical:
-                // Criticalレベルのログは、アプリケーションのクラッシュや重大な問題を示すために使用される
                 logMessage = "[CRITICAL] [GLIB] ";
                 break;
             }
 
+            logMessage += GetCurrentTimeString();
+            logMessage += " ";
             logMessage += message;
             logMessage += "\n";
 
 #ifdef UNICODE
-            std::wstring wLogMessage(logMessage.begin(), logMessage.end());
+            std::wstring wLogMessage = ConvertAnsiToWide(logMessage);
             OutputDebugStringW(wLogMessage.c_str());
 #else
             OutputDebugStringA(logMessage.c_str());
 #endif
         }
 
-        // Optional: Overload for formatted strings
+        inline void LogFormattedArgs(LogLevel level, const char* format, va_list args)
+        {
+            char buffer[1024];
+            vsnprintf(buffer, sizeof(buffer), format, args);
+            Log(level, buffer);
+        }
+
         template<typename... Args>
         static void FormatLog(LogLevel level, const char* format, ...)
         {
             va_list args;
             va_start(args, format);
-            char buffer[1024];
-            vsnprintf(buffer, sizeof(buffer), format, args);
+            LogFormattedArgs(level, format, args);
             va_end(args);
-            Log(level, buffer);
         }
 
         static void DebugLog(const std::string& message)
@@ -103,13 +145,8 @@ namespace glib
 #else
             va_list args;
             va_start(args, format);
-            char buffer[1024];
-            vsnprintf(buffer, sizeof(buffer), format, args);
+            LogFormattedArgs(LogLevel::Debug, format, args);
             va_end(args);
-
-            std::string s(buffer);
-            s.insert(0, "[DEBUG] ");
-            Log(LogLevel::Debug , buffer);
 #endif
         }
 
@@ -117,52 +154,32 @@ namespace glib
         {
             va_list args;
             va_start(args, format);
-            char buffer[1024];
-            vsnprintf(buffer, sizeof(buffer), format, args);
+            LogFormattedArgs(LogLevel::Info, format, args);
             va_end(args);
-
-            std::string s(buffer);
-            s.insert(0, "[INFO] ");
-            Log(LogLevel::Info, buffer);
         }
 
         static void FormatWarningLog(const char* format, ...)
         {
             va_list args;
             va_start(args, format);
-            char buffer[1024];
-            vsnprintf(buffer, sizeof(buffer), format, args);
+            LogFormattedArgs(LogLevel::Warning, format, args);
             va_end(args);
-
-            std::string s(buffer);
-            s.insert(0, "[WARNING] ");
-            Log(LogLevel::Warning, buffer);
         }
 
         static void FormatErrorLog(const char* format, ...)
         {
             va_list args;
             va_start(args, format);
-            char buffer[1024];
-            vsnprintf(buffer, sizeof(buffer), format, args);
+            LogFormattedArgs(LogLevel::Error, format, args);
             va_end(args);
-
-            std::string s(buffer);
-            s.insert(0, "[Error] ");
-            Log(LogLevel::Error, buffer);
         }
 
         static void FormatCriticalLog(const char* format, ...)
         {
             va_list args;
             va_start(args, format);
-            char buffer[1024];
-            vsnprintf(buffer, sizeof(buffer), format, args);
+            LogFormattedArgs(LogLevel::Critical, format, args);
             va_end(args);
-
-            std::string s(buffer);
-            s.insert(0, "[CRITICAL] ");
-            Log(LogLevel::Critical, buffer);
         }
     }
 }

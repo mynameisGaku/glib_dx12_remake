@@ -15,11 +15,11 @@ namespace glib
             {
                 debugController->EnableDebugLayer();
                 debugController->Release();
-                Logger::DebugLog("D3D12 debug layer enabled successfully.");
+                Logger::DebugLog("D3D12のデバッグレイヤーを有効化しました。");
             }
             else
             {
-                Logger::ErrorLog("Failed to enable D3D12 debug layer.");
+                Logger::ErrorLog("D3D12のデバッグレイヤーを有効化できませんでした。");
             }
         }
     };

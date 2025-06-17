@@ -9,12 +9,22 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_DESTROY:
         PostQuitMessage(0);
         return 0;
+
+    case WM_KEYDOWN:
+        if (wParam == VK_ESCAPE)
+        {
+            PostQuitMessage(0);
+            glib::Logger::InfoLog("Escapeキーが押されたため、アプリケーションを終了します。");
+            return 0;
+        }
+        break;
+
     case WM_PAINT:
         ValidateRect(hwnd, nullptr);
         return 0;
-    default:
-        return DefWindowProc(hwnd, msg, wParam, lParam);
     }
+
+    return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
 glib::GLibWindow::GLibWindow()
@@ -78,6 +88,7 @@ void glib::GLibWindow::Finalize(const LPCWSTR& wndName, int width, int height)
     if (m_HWnd == nullptr)
     {
         MessageBox(nullptr, L"Failed to create window", L"Error", MB_ICONERROR);
+        glib::Logger::ErrorLog("Failed to create window.");
         return;
     }
 
@@ -85,12 +96,19 @@ void glib::GLibWindow::Finalize(const LPCWSTR& wndName, int width, int height)
     glib::Logger::DebugLog("Window shown successfully.");
 }
 
-void glib::GLibWindow::SetName(const LPCWSTR& wndName)
+void glib::GLibWindow::SetName(const LPCWSTR& wndName, bool isOutputLog)
 {
     m_WindowTitle = wndName;
     if (m_HWnd)
     {
         SetWindowText(m_HWnd, m_WindowTitle);
+        if (isOutputLog)
+            Logger::FormatDebugLog("ウィンドウタイトルを変更: %s", glib::WStringToString(m_WindowTitle).c_str());
+    }
+    else
+    {
+        if (isOutputLog)
+            Logger::WarningLog("ウィンドウタイトルを変更できませんでした（ウィンドウが存在しないため）。");
     }
 }
 
@@ -102,6 +120,11 @@ void glib::GLibWindow::SetPos(int x, int y)
     if (m_HWnd)
     {
         SetWindowPos(m_HWnd, nullptr, m_ClientPosX, m_ClientPosY, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+        Logger::FormatDebugLog("ウィンドウ位置を変更: (%d, %d)", m_ClientPosX, m_ClientPosY);
+    }
+    else
+    {
+        Logger::WarningLog("ウィンドウ位置を変更できませんでした（ウィンドウが存在しないため）。");
     }
 }
 
@@ -115,6 +138,11 @@ void glib::GLibWindow::SetAspect(float aspect)
         GetClientRect(m_HWnd, &rect);
         int newWidth = static_cast<int>(rect.bottom * m_Aspect);
         SetWindowPos(m_HWnd, nullptr, 0, 0, newWidth, rect.bottom, SWP_NOMOVE | SWP_NOZORDER);
+        Logger::FormatDebugLog("アスペクト比を設定: %.2f（新しい幅: %d）", m_Aspect, newWidth);
+    }
+    else
+    {
+        Logger::WarningLog("アスペクト比を設定できませんでした（ウィンドウが存在しないため）。");
     }
 }
 
@@ -126,6 +154,11 @@ void glib::GLibWindow::SetStyle(DWORD style)
     {
         SetWindowLong(m_HWnd, GWL_STYLE, m_WindowStyle);
         SetWindowPos(m_HWnd, nullptr, 0, 0, m_ClientWidth, m_ClientHeight, SWP_NOMOVE | SWP_NOZORDER);
+        Logger::FormatDebugLog("ウィンドウスタイルを設定: 0x%08X", m_WindowStyle);
+    }
+    else
+    {
+        Logger::WarningLog("ウィンドウスタイルを設定できませんでした（ウィンドウが存在しないため）。");
     }
 }
 
@@ -138,6 +171,11 @@ void glib::GLibWindow::SetClientWidth(int width)
         GetClientRect(m_HWnd, &rect);
         int newHeight = static_cast<int>(rect.right / m_Aspect);
         SetWindowPos(m_HWnd, nullptr, 0, 0, m_ClientWidth, newHeight, SWP_NOMOVE | SWP_NOZORDER);
+        Logger::FormatDebugLog("クライアント幅を設定: %d（新しい高さ: %d）", m_ClientWidth, newHeight);
+    }
+    else
+    {
+        Logger::WarningLog("クライアント幅を設定できませんでした（ウィンドウが存在しないため）。");
     }
 }
 
@@ -150,5 +188,10 @@ void glib::GLibWindow::SetClientHeight(int height)
         GetClientRect(m_HWnd, &rect);
         int newWidth = static_cast<int>(rect.bottom * m_Aspect);
         SetWindowPos(m_HWnd, nullptr, 0, 0, newWidth, m_ClientHeight, SWP_NOMOVE | SWP_NOZORDER);
+        Logger::FormatDebugLog("クライアント高さを設定: %d（新しい幅: %d）", m_ClientHeight, newWidth);
+    }
+    else
+    {
+        Logger::WarningLog("クライアント高さを設定できませんでした（ウィンドウが存在しないため）。");
     }
 }
