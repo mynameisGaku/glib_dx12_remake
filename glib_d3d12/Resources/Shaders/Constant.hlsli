@@ -1,12 +1,9 @@
-cbuffer b0 : register(b0)
+cbuffer Transform : register(b0)
 {
-    matrix Mat;
-}
-
-cbuffer b1 : register(b1)
-{
-    float4 Diffuse;
-}
+    float4x4 World : packoffset(c0);
+    float4x4 View : packoffset(c4);
+    float4x4 Proj : packoffset(c8);
+};
 
 Texture2D<float4> Texture : register(t0);
 SamplerState Sampler : register(s0);

@@ -132,6 +132,8 @@ void glib::BeginRender(const GLIB_PIPELINE_TYPE& usePipelineType)
 
         XMMATRIX world = XMMatrixScaling(2.0f, 3.0f, 1.0f) * XMMatrixTranslation(-sin(radian) * radius, 0.0f, -cos(radian) * radius);
         world = XMMatrixScaling(1.0f, 2.0f, 1.0f) * XMMatrixRotationAxis({ 1, 0, 1 }, radian) * XMMatrixTranslation(sin(radian) * radius, 0.0f, cos(radian) * radius);
+
+        pD3D12->SetClearColor(XMFLOAT4(sinf(radian), 1.0f, -sinf(radian), 1.0f));
     }
 
     // •`‰æó•tŠJn

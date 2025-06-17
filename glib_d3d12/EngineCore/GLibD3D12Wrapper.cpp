@@ -15,65 +15,127 @@ glib::GLibD3D12Wrapper::~GLibD3D12Wrapper()
     term();
 }
 
-void glib::GLibD3D12Wrapper::BeginRender()
-{
-    // コマンドアロケータのリセット
-    m_CommandAllocators[m_FrameIndex]->Reset();
-
-    // コマンドリストのリセット
-    m_CommandList->Reset(m_CommandAllocators[m_FrameIndex].Get(), nullptr);
-
-    // リソースバリア（Present → RenderTarget）
-    D3D12_RESOURCE_BARRIER barrier{};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    barrier.Transition.pResource = m_ColorBuffers[m_FrameIndex].Get();
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    m_CommandList->ResourceBarrier(1, &barrier);
-
-    // RTV設定とクリア
-    FLOAT clearColor[] = { 0.2f, 0.2f, 0.4f, 1.0f };
-    m_CommandList->OMSetRenderTargets(1, &m_HandlesRTV[m_FrameIndex], FALSE, nullptr);
-    m_CommandList->ClearRenderTargetView(m_HandlesRTV[m_FrameIndex], clearColor, 0, nullptr);
-}
-
-void glib::GLibD3D12Wrapper::EndRender()
-{
-    // リソースバリア（RenderTarget → Present）
-    D3D12_RESOURCE_BARRIER barrier{};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    barrier.Transition.pResource = m_ColorBuffers[m_FrameIndex].Get();
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    m_CommandList->ResourceBarrier(1, &barrier);
-
-    // コマンドリスト終了
-    m_CommandList->Close();
-
-    // 実行
-    ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
-    m_CommandQueue->ExecuteCommandLists(1, ppCommandLists);
-
-    // Present
-    present(1);
-
-    // フェンス同期
-    m_CommandQueue->Signal(m_Fence.Get(), m_FenceCounters[m_FrameIndex]);
-    m_FenceCounters[m_FrameIndex]++;
-
-    // 次フレームへ
-    m_FrameIndex = m_SwapChain->GetCurrentBackBufferIndex();
-
-    waitGpu();
-}
-
 bool glib::GLibD3D12Wrapper::init()
 {
     assert(initD3D());
+
+    {
+        // 頂点データ
+        Vertex vertices[] =
+        {
+            { XMFLOAT3(-1.0f, -1.0f, 0.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
+            { XMFLOAT3( 1.0f, -1.0f, 0.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
+            { XMFLOAT3( 0.0f,  1.0f, 0.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
+        };
+
+        // ヒーププロパティ
+        D3D12_HEAP_PROPERTIES prop{};
+        prop.Type = D3D12_HEAP_TYPE_UPLOAD;
+        prop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+        prop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+        prop.CreationNodeMask = 1;
+        prop.VisibleNodeMask = 1;
+
+        // リソース設定
+        D3D12_RESOURCE_DESC desc{};
+        desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        desc.Alignment = 0;
+        desc.Width = sizeof(vertices);
+        desc.Height = 1;
+        desc.DepthOrArraySize = 1;
+        desc.MipLevels = 1;
+        desc.Format = DXGI_FORMAT_UNKNOWN;
+        desc.SampleDesc.Count = 1;
+        desc.SampleDesc.Quality = 0;
+        desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+        // リソース生成
+        HRESULT hr{};
+        hr = m_Device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(m_VB.GetAddressOf()));
+        if (FAILED(hr))
+        {
+            glib::Logger::FormatCriticalLog("Failed to create resource. HRESULT=0x%x", hr);
+            return false;
+        }
+        glib::Logger::FormatDebugLog("Successfully created resource.");
+
+        // マップ
+        void* ptr = nullptr;
+        hr = m_VB->Map(0, nullptr, &ptr);
+        if (FAILED(hr))
+        {
+            glib::Logger::FormatCriticalLog("Failed to mapped resource. HRESULT=0x%x", hr);
+            return false;
+        }
+        glib::Logger::FormatDebugLog("Successfully mapped resource.");
+
+        // 頂点データをマップ先に
+        memcpy(ptr, vertices, sizeof(vertices));
+
+        // マップ解除
+        m_VB->Unmap(0, nullptr);
+
+        // 頂点バッファビューの設定
+        m_VBV.BufferLocation = m_VB->GetGPUVirtualAddress();
+        m_VBV.SizeInBytes = static_cast<UINT>(sizeof(vertices));
+        m_VBV.StrideInBytes = static_cast<UINT>(sizeof(Vertex));
+    }
+
+    // ディスクリプタヒープの生成
+    {
+        D3D12_DESCRIPTOR_HEAP_DESC desc{};
+        desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        desc.NumDescriptors = 5000;
+        desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        desc.NodeMask = 0;
+
+        HRESULT hr{};
+        hr = m_Device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(m_DescriptorHeaps[GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].GetAddressOf()));
+        if (FAILED(hr))
+        {
+            glib::Logger::FormatCriticalLog("Failed to create descriptor heap. HRESULT=0x%x", hr);
+            return false;
+        }
+        glib::Logger::FormatDebugLog("Successfully create descriptor heap.");
+    }
+
+    // 定数バッファ生成
+    {
+        D3D12_HEAP_PROPERTIES prop{};
+        prop.Type = D3D12_HEAP_TYPE_UPLOAD;
+        prop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+        prop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+        prop.CreationNodeMask = 1;
+        prop.VisibleNodeMask = 1;
+
+        // 設定
+        D3D12_RESOURCE_DESC desc{};
+        desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        desc.Alignment = 0;
+        desc.Width = sizeof(Transform);
+        desc.Height = 1;
+        desc.DepthOrArraySize = 1;
+        desc.MipLevels = 1;
+        desc.Format = DXGI_FORMAT_UNKNOWN;
+        desc.SampleDesc.Count = 1;
+        desc.SampleDesc.Quality = 0;
+        desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+        auto incrementSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        for (int i = 0; i < m_FrameCount; i++)
+        {
+            // リソース生成
+            auto hr = m_Device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(m_CBVs[i].GetAddressOf()));
+            if (FAILED(hr))
+            {
+                glib::Logger::FormatCriticalLog("Failed to create resource. HRESULT=0x%x", hr);
+                return false;
+            }
+            glib::Logger::FormatDebugLog("Successfully create resource.");
+        }
+    }
 
     return true;
 }
@@ -184,7 +246,7 @@ bool glib::GLibD3D12Wrapper::initD3D()
         {
             glib::Logger::FormatCriticalLog("Failed to create dxgi swapchain3. HRESULT=0x%x", hr);
             factory.Reset();
-            swapChain->Release();
+            glib::SafeReleaseDX(swapChain);
             return false;
         }
         glib::Logger::FormatDebugLog("Successfully created dxgi swapchain3.");
@@ -194,7 +256,7 @@ bool glib::GLibD3D12Wrapper::initD3D()
 
         // 不要なので削除
         factory.Reset();
-        swapChain->Release();
+        glib::SafeReleaseDX(swapChain);
     }
 
     // コマンドアロケーター
@@ -374,4 +436,66 @@ void glib::GLibD3D12Wrapper::termD3D()
     m_SwapChain.Reset();
     m_CommandQueue.Reset();
     m_Device.Reset();
+}
+
+void glib::GLibD3D12Wrapper::BeginRender()
+{
+    // コマンド記録開始
+    m_CommandAllocators[m_FrameIndex]->Reset();
+    m_CommandList->Reset(m_CommandAllocators[m_FrameIndex].Get(), nullptr);
+
+    // リソースバリア（Present → RenderTarget）
+    D3D12_RESOURCE_BARRIER barrier{};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    barrier.Transition.pResource = m_ColorBuffers[m_FrameIndex].Get();
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+    // リソースバリア
+    m_CommandList->ResourceBarrier(1, &barrier);
+
+    // レンダーターゲット設定
+    m_CommandList->OMSetRenderTargets(1, &m_HandlesRTV[m_FrameIndex], FALSE, nullptr);
+
+    // レンダーターゲットビューのクリア
+    m_CommandList->ClearRenderTargetView(m_HandlesRTV[m_FrameIndex], &m_ClearColor.x, 0, nullptr);
+}
+
+void glib::GLibD3D12Wrapper::EndRender()
+{
+    // リソースバリア（RenderTarget → Present）
+    D3D12_RESOURCE_BARRIER barrier{};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    barrier.Transition.pResource = m_ColorBuffers[m_FrameIndex].Get();
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    m_CommandList->ResourceBarrier(1, &barrier);
+
+    // コマンドリストの記録終了
+    m_CommandList->Close();
+
+    // 実行
+    ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
+    m_CommandQueue->ExecuteCommandLists(1, ppCommandLists);
+
+    // Present
+    present(1);
+
+    // フェンス同期
+    m_CommandQueue->Signal(m_Fence.Get(), m_FenceCounters[m_FrameIndex]);
+    m_FenceCounters[m_FrameIndex]++;
+
+    // 次フレームへ
+    m_FrameIndex = m_SwapChain->GetCurrentBackBufferIndex();
+
+    waitGpu();
+}
+
+void glib::GLibD3D12Wrapper::SetClearColor(const XMFLOAT4& color)
+{
+    m_ClearColor = color;
 }

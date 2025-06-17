@@ -1,19 +1,21 @@
 #include "Constant.hlsli"
 
-struct PSInput
+struct VSOutput
 {
-    float4 pos : SV_POSITION;
-    float2 uv : TEXCOORD;
+    float4 Position : SV_Position;
+    float4 Color : COLOR;
 };
 
 struct PSOutput
 {
-    float4 color : SV_TARGET;
+    float4 Color : SV_TARGET0;
 };
 
-PSOutput main(PSInput input)
+PSOutput main(VSOutput input)
 {
-    PSOutput output;
-    output.color = float4(Texture.Sample(Sampler, input.uv)) * Diffuse;
-	return output;
+    PSOutput output = (PSOutput)0;
+    
+    output.Color = input.Color;
+    
+    return output;
 }

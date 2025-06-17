@@ -17,4 +17,14 @@ namespace glib
 			p = nullptr;
 		}
 	}
+
+	template < typename T>
+	void SafeReleaseDX(T*& ptr)
+	{
+		if (ptr != nullptr)
+		{
+			ptr->Release();
+			ptr = nullptr;
+		}
+	}
 }
