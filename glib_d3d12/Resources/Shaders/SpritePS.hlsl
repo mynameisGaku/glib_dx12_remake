@@ -3,7 +3,7 @@
 struct VSOutput
 {
     float4 Position : SV_Position;
-    float4 Color : COLOR;
+    float2 Texcoord : TEXCOORD;
 };
 
 struct PSOutput
@@ -15,7 +15,7 @@ PSOutput main(VSOutput input)
 {
     PSOutput output = (PSOutput)0;
     
-    output.Color = input.Color;
+    output.Color = ColorMap.Sample(ColorSmp, input.Texcoord);
     
     return output;
 }

@@ -35,6 +35,13 @@ namespace glib
             XMMATRIX Proj;
         };
 
+        struct Texture
+        {
+            GLibComPtr<ID3D12Resource> Resource;
+            D3D12_CPU_DESCRIPTOR_HANDLE HandleCPU;
+            D3D12_GPU_DESCRIPTOR_HANDLE HandleGPU;
+        };
+
         template<typename T>
         struct ConstantBufferView
         {
@@ -72,9 +79,9 @@ namespace glib
         vector<ConstantBufferView<Transform>>           m_CBVs{};
         GLibComPtr<ID3D12Resource>                      m_DepthBuffer{};
 
-
+        Texture m_Texture;
         XMFLOAT4                                        m_ClearColor;
-        float m_Rotate;
+        float                                           m_Rotate;
 
         /* profiler */
         LARGE_INTEGER m_Freq{};

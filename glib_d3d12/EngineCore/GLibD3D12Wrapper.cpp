@@ -25,19 +25,13 @@ bool glib::GLibD3D12Wrapper::init()
     // 頂点バッファ
     {
         // 頂点データ  
-        Vertex vertices[] =
+        VertexPositionTexture vertices[] =
         {
             // 前面  
-            { XMFLOAT3(-1.0f,  1.0f, -1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
-            { XMFLOAT3(1.0f,  1.0f, -1.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
-            { XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
-            { XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f) },
-
-            // 背面  
-            { XMFLOAT3(-1.0f,  1.0f,  1.0f), XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f) },
-            { XMFLOAT3(1.0f,  1.0f,  1.0f), XMFLOAT4(0.0f, 1.0f, 1.0f, 1.0f) },
-            { XMFLOAT3(1.0f, -1.0f,  1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
-            { XMFLOAT3(-1.0f, -1.0f,  1.0f), XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f) },
+            { VertexPositionTexture(XMFLOAT3(-1.0f,  1.0f,  0.0f), XMFLOAT2(0.0f, 0.0f)) },
+            { VertexPositionTexture(XMFLOAT3( 1.0f,  1.0f,  0.0f), XMFLOAT2(1.0f, 0.0f)) },
+            { VertexPositionTexture(XMFLOAT3( 1.0f, -1.0f,  0.0f), XMFLOAT2(1.0f, 1.0f)) },
+            { VertexPositionTexture(XMFLOAT3(-1.0f, -1.0f,  0.0f), XMFLOAT2(0.0f, 1.0f)) },
         };
 
         // ヒーププロパティ
@@ -90,7 +84,7 @@ bool glib::GLibD3D12Wrapper::init()
         // 頂点バッファビューの設定
         m_VBV.BufferLocation = m_VB->GetGPUVirtualAddress();
         m_VBV.SizeInBytes = static_cast<UINT>(sizeof(vertices));
-        m_VBV.StrideInBytes = static_cast<UINT>(sizeof(Vertex));
+        m_VBV.StrideInBytes = static_cast<UINT>(sizeof(VertexPositionTexture));
     }
 
     // インデックスバッファ
@@ -101,16 +95,6 @@ bool glib::GLibD3D12Wrapper::init()
         {
             // 前面  
             0, 1, 2, 0, 2, 3,
-            // 背面  
-            4, 6, 5, 4, 7, 6,
-            // 左側面  
-            4, 5, 1, 4, 1, 0,
-            // 右側面  
-            3, 2, 6, 3, 6, 7,
-            // 上面  
-            1, 5, 6, 1, 6, 2,
-            // 底面  
-            4, 0, 3, 4, 3, 7,
         };
 
         ibvcount = _countof(indices);
@@ -339,18 +323,48 @@ bool glib::GLibD3D12Wrapper::init()
         flag |= D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
         // ルートパラメーター
-        D3D12_ROOT_PARAMETER param{};
-        param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-        param.Descriptor.ShaderRegister = 0;
-        param.Descriptor.RegisterSpace = 0;
-        param.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+        D3D12_ROOT_PARAMETER param[2]{};
+        param[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+        param[0].Descriptor.ShaderRegister = 0;
+        param[0].Descriptor.RegisterSpace = 0;
+        param[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+
+        // レンジ
+        D3D12_DESCRIPTOR_RANGE range{};
+        range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+        range.NumDescriptors = 5000;
+        range.BaseShaderRegister = 0;
+        range.RegisterSpace = 0;
+        range.OffsetInDescriptorsFromTableStart = 0;
+        
+        // パラメーター2
+        param[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+        param[1].DescriptorTable.NumDescriptorRanges = 1;
+        param[1].DescriptorTable.pDescriptorRanges = &range;
+        param[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+        // スタティックサンプラ
+        D3D12_STATIC_SAMPLER_DESC sampler{};
+        sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+        sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        sampler.MipLODBias = D3D12_DEFAULT_MIP_LOD_BIAS;
+        sampler.MaxAnisotropy = 1;
+        sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+        sampler.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+        sampler.MinLOD = -D3D12_FLOAT32_MAX;
+        sampler.MaxLOD = +D3D12_FLOAT32_MAX;
+        sampler.ShaderRegister = 0;
+        sampler.RegisterSpace = 0;
+        sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
         // ルートシグネチャ
         D3D12_ROOT_SIGNATURE_DESC desc{};
-        desc.NumParameters = 1;
-        desc.NumStaticSamplers = 0;
-        desc.pParameters = &param;
-        desc.pStaticSamplers = nullptr;
+        desc.NumParameters = 2;
+        desc.NumStaticSamplers = 1;
+        desc.pParameters = param;
+        desc.pStaticSamplers = &sampler;
         desc.Flags = flag;
 
         GLibComPtr<ID3DBlob> Blob = nullptr;
@@ -387,9 +401,9 @@ bool glib::GLibD3D12Wrapper::init()
         elements[0].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
         elements[0].InstanceDataStepRate = 0;
 
-        elements[1].SemanticName = "COLOR";
+        elements[1].SemanticName = "TEXCOORD";
         elements[1].SemanticIndex = 0;
-        elements[1].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+        elements[1].Format = DXGI_FORMAT_R32G32_FLOAT;
         elements[1].InputSlot = 0;
         elements[1].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
         elements[1].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
@@ -471,6 +485,53 @@ bool glib::GLibD3D12Wrapper::init()
             return false;
         }
         glib::Logger::FormatDebugLog("パイプラインステートの作成に成功しました。");
+    }
+
+    // テクスチャ生成
+    {
+        ResourceUploadBatch batch(m_Device.Get());
+        batch.Begin();
+
+        // 生成
+        std::wstring path = L"Resources/Images/texture.dds";
+        hr = CreateDDSTextureFromFile(m_Device.Get(), batch, path.c_str(), m_Texture.Resource.GetAddressOf(), true);
+        if (FAILED(hr))
+        {
+            glib::Logger::FormatCriticalLog("DDSファイルの読み込みに失敗しました。 HRESULT=0x%x", hr);
+            return false;
+        }
+        glib::Logger::FormatDebugLog("DDSファイルの読み込みに成功しました。");
+
+        auto future = batch.End(m_CommandQueue.Get());
+
+        future.wait();
+
+        auto incrementSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+        auto handleCPU = m_DescriptorHeaps[GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->GetCPUDescriptorHandleForHeapStart();
+        auto handleGPU = m_DescriptorHeaps[GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->GetGPUDescriptorHandleForHeapStart();
+
+        handleCPU.ptr += incrementSize * 2;
+        handleGPU.ptr += incrementSize * 2;
+
+        m_Texture.HandleCPU = handleCPU;
+        m_Texture.HandleGPU = handleGPU;
+
+        auto texDesc = m_Texture.Resource->GetDesc();
+
+        // SRVの設定
+        D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc{};
+        viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        viewDesc.Format = texDesc.Format;
+        viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        viewDesc.Texture2D.MostDetailedMip = 0;
+        viewDesc.Texture2D.MipLevels = texDesc.MipLevels;
+        viewDesc.Texture2D.PlaneSlice = 0;
+        viewDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+        // SRV生成
+        m_Device->CreateShaderResourceView(m_Texture.Resource.Get(), &viewDesc, handleCPU);
+
     }
 
     return true;
@@ -785,11 +846,13 @@ void glib::GLibD3D12Wrapper::BeginRender()
     // 描画
     {
         m_Rotate += XMConvertToRadians(45.0f) * glib::DeltaTime();
-        m_CBVs[m_FrameIndex * 2 + 0].pBuffer->World = XMMatrixRotationZ(m_Rotate) * XMMatrixRotationX(m_Rotate) * XMMatrixRotationY(m_Rotate);
+        m_CBVs[m_FrameIndex * 2 + 0].pBuffer->World = XMMatrixRotationZ(XMConvertToRadians(45.0f)) * XMMatrixRotationX(XMConvertToRadians(45.0f)) * XMMatrixRotationY(m_Rotate);
         m_CBVs[m_FrameIndex * 2 + 1].pBuffer->World = XMMatrixRotationY(m_Rotate) * XMMatrixScaling(2.0f, 0.9f, 0.9f);
 
         m_CommandList->SetGraphicsRootSignature(m_Rootsignature.Get());
         m_CommandList->SetDescriptorHeaps(1, m_DescriptorHeaps[GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].GetAddressOf());
+        m_CommandList->SetGraphicsRootConstantBufferView(0, m_CBVs[m_FrameIndex].Desc.BufferLocation);
+        m_CommandList->SetGraphicsRootDescriptorTable(1, m_Texture.HandleGPU);
         m_CommandList->SetPipelineState(m_PSO.Get());
         m_CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         m_CommandList->IASetVertexBuffers(0, 1, &m_VBV);

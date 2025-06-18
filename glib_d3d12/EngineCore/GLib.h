@@ -8,10 +8,15 @@
 #include <d3dx12.h>
 #include <d3d12.h>
 #include <dxgi1_4.h>
+#include <ResourceUploadBatch.h>
+#include <DDSTextureLoader.h>
+#include <VertexTypes.h>
 
 /* pragma link */
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "dxguid.lib")
+#pragma comment(lib, "d3dcompiler.lib")
 
 // profiler
 #include <psapi.h>

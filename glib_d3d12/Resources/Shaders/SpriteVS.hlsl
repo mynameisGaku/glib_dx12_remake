@@ -3,13 +3,13 @@
 struct VSInput
 {
     float3 Position : POSITION;
-    float4 Color : COLOR;
+    float2 Texcoord : TEXCOORD;
 };
 
 struct VSOutput
 {
     float4 Position : SV_Position;
-    float4 Color : COLOR;
+    float2 Texcoord : TEXCOORD;
 };
 
 VSOutput main(VSInput input)
@@ -22,7 +22,7 @@ VSOutput main(VSInput input)
     float4 projPos = mul(Proj, viewPos);
     
     output.Position = projPos;
-    output.Color = input.Color;
+    output.Texcoord = input.Texcoord;
 
     return output;
 }
