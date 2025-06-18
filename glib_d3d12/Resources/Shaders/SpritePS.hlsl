@@ -13,7 +13,7 @@ struct PSOutput
 
 PSOutput main(VSOutput input)
 {
-    PSOutput output = (PSOutput)0;
+    PSOutput output = (PSOutput) 0;
     
     output.Color = ColorMap.Sample(ColorSmp, input.Texcoord);
     

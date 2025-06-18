@@ -7,45 +7,35 @@
 #include <iomanip>
 #include <sstream>
 #include <stdio.h>
-
-inline std::wstring ConvertUTF8ToWide(const std::string& utf8Str)
-{
-    if (utf8Str.empty()) return L"";
-
-    int size_needed = MultiByteToWideChar(CP_UTF8, 0, utf8Str.c_str(), -1, nullptr, 0);
-    if (size_needed == 0) return L"[•ÏŠ·Ž¸”s]";
-
-    std::wstring wideStr(size_needed, 0);
-    MultiByteToWideChar(CP_UTF8, 0, utf8Str.c_str(), -1, &wideStr[0], size_needed);
-    return wideStr;
-}
-
-inline std::wstring ConvertAnsiToWide(const std::string& ansiStr)
-{
-    if (ansiStr.empty()) return L"";
-
-    int size_needed = MultiByteToWideChar(CP_ACP, 0, ansiStr.c_str(), -1, nullptr, 0);
-    if (size_needed == 0) return L"[•ÏŠ·Ž¸”s]";
-
-    std::wstring wideStr(size_needed, 0);
-    MultiByteToWideChar(CP_ACP, 0, ansiStr.c_str(), -1, &wideStr[0], size_needed);
-    return wideStr;
-}
-
-inline std::string GetCurrentTimeString()
-{
-    auto now = std::chrono::system_clock::now();
-    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
-    std::tm local_tm;
-    localtime_s(&local_tm, &now_c);
-
-    std::ostringstream oss;
-    oss << "[" << std::put_time(&local_tm, "%H:%M:%S") << "]";
-    return oss.str();
-}
+#include <GLib.h>
 
 namespace glib
 {
+
+    inline std::wstring ConvertAnsiToWide(const std::string& ansiStr)
+    {
+        if (ansiStr.empty()) return L"";
+
+        int size_needed = MultiByteToWideChar(CP_ACP, 0, ansiStr.c_str(), -1, nullptr, 0);
+        if (size_needed == 0) return L"[•ÏŠ·Ž¸”s]";
+
+        std::wstring wideStr(size_needed, 0);
+        MultiByteToWideChar(CP_ACP, 0, ansiStr.c_str(), -1, &wideStr[0], size_needed);
+        return wideStr;
+    }
+
+    inline std::string GetCurrentTimeString()
+    {
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+        std::tm local_tm;
+        localtime_s(&local_tm, &now_c);
+
+        std::ostringstream oss;
+        oss << "[" << std::put_time(&local_tm, "%H:%M:%S") << "]";
+        return oss.str();
+    }
+
     namespace Logger
     {
         enum class LogLevel
@@ -80,13 +70,13 @@ namespace glib
                 break;
             }
 
-            logMessage += GetCurrentTimeString();
+            logMessage += glib::GetCurrentTimeString();
             logMessage += " ";
             logMessage += message;
             logMessage += "\n";
 
 #ifdef UNICODE
-            std::wstring wLogMessage = ConvertAnsiToWide(logMessage);
+            std::wstring wLogMessage = glib::ConvertAnsiToWide(logMessage);
             OutputDebugStringW(wLogMessage.c_str());
 #else
             OutputDebugStringA(logMessage.c_str());

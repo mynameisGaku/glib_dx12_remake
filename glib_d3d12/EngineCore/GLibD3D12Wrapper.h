@@ -8,6 +8,7 @@
 #include <d3dx12.h>
 #include <GLib.h>
 #include <GLibComPtr.h>
+#include <GLibMesh.h>
 #include <vector>
 
 using namespace std;
@@ -74,7 +75,6 @@ namespace glib
         D3D12_VERTEX_BUFFER_VIEW                        m_VBV{};
         GLibComPtr<ID3D12Resource>                      m_IB{};
         D3D12_INDEX_BUFFER_VIEW                         m_IBV{};
-        UINT32 ibvcount;
         vector<GLibComPtr<ID3D12Resource>>              m_CB{};
         vector<ConstantBufferView<Transform>>           m_CBVs{};
         GLibComPtr<ID3D12Resource>                      m_DepthBuffer{};
@@ -82,6 +82,9 @@ namespace glib
         Texture m_Texture;
         XMFLOAT4                                        m_ClearColor;
         float                                           m_Rotate;
+
+        vector<GLibMesh> m_Meshes;
+        vector<GLibMaterial> m_Materials;
 
         /* profiler */
         LARGE_INTEGER m_Freq{};

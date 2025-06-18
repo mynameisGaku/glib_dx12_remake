@@ -148,6 +148,7 @@
     <ClCompile Include="EngineCore\GLibMessage.cpp" />
     <ClCompile Include="EngineCore\GLibTime.cpp" />
     <ClCompile Include="EngineCore\GLibWindow.cpp" />
+    <ClCompile Include="EngineCore\GLibMesh.cpp" />
     <ClCompile Include="Game\main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -166,6 +167,7 @@
     <ClInclude Include="EngineCore\GLibStringUtil.h" />
     <ClInclude Include="EngineCore\GLibTime.h" />
     <ClInclude Include="EngineCore\GLibWindow.h" />
+    <ClInclude Include="EngineCore\GLibMesh.h" />
     <ClInclude Include="EngineCore\Vendor\magic_enum\magic_enum.hpp" />
     <ClInclude Include="EngineCore\Vendor\nlohmann\adl_serializer.hpp" />
     <ClInclude Include="EngineCore\Vendor\nlohmann\byte_container_with_subtype.hpp" />

@@ -45,6 +45,9 @@
     <ClCompile Include="EngineCore\GLibD3D12Wrapper.cpp">
       <Filter>EngineCore</Filter>
     </ClCompile>
+    <ClCompile Include="EngineCore\GLibMesh.cpp">
+      <Filter>EngineCore</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\Constant.hlsli">
@@ -225,6 +228,9 @@
       <Filter>EngineCore\Vendor\stbi</Filter>
     </ClInclude>
     <ClInclude Include="EngineCore\GLibD3D12Wrapper.h">
+      <Filter>EngineCore</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore\GLibMesh.h">
       <Filter>EngineCore</Filter>
     </ClInclude>
   </ItemGroup>

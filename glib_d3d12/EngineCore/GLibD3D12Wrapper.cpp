@@ -22,82 +22,124 @@ bool glib::GLibD3D12Wrapper::init()
 
     HRESULT hr{};
 
+    // ディスクリプタヒープの生成
+    {
+        D3D12_DESCRIPTOR_HEAP_DESC desc{};
+        desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        desc.NumDescriptors = 5000;
+        desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        desc.NodeMask = 0;
+
+        hr = m_Device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(m_DescriptorHeaps[GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].GetAddressOf()));
+        if (FAILED(hr))
+        {
+            glib::Logger::FormatCriticalLog("ディスクリプタヒープの作成に失敗しました。 HRESULT=0x%x", hr);
+            return false;
+        }
+        glib::Logger::FormatDebugLog("ディスクリプタヒープの作成に成功しました。");
+    }
+
+    // テクスチャ生成
+    {
+        ResourceUploadBatch batch(m_Device.Get());
+        batch.Begin();
+
+        // 生成
+        std::wstring path = L"Resources/Models/teapot/default.DDS";
+        hr = CreateDDSTextureFromFile(m_Device.Get(), batch, path.c_str(), m_Texture.Resource.GetAddressOf(), true);
+        if (FAILED(hr))
+        {
+            glib::Logger::FormatCriticalLog("DDSファイルの読み込みに失敗しました。 HRESULT=0x%x", hr);
+            return false;
+        }
+        glib::Logger::FormatDebugLog("DDSファイルの読み込みに成功しました。");
+
+        auto future = batch.End(m_CommandQueue.Get());
+
+        future.wait();
+
+        auto incrementSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+        auto handleCPU = m_DescriptorHeaps[GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->GetCPUDescriptorHandleForHeapStart();
+        auto handleGPU = m_DescriptorHeaps[GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->GetGPUDescriptorHandleForHeapStart();
+
+        handleCPU.ptr += incrementSize * 2;
+        handleGPU.ptr += incrementSize * 2;
+
+        m_Texture.HandleCPU = handleCPU;
+        m_Texture.HandleGPU = handleGPU;
+
+        auto texDesc = m_Texture.Resource->GetDesc();
+
+        // SRVの設定
+        D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc{};
+        viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        viewDesc.Format = texDesc.Format;
+        viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        viewDesc.Texture2D.MostDetailedMip = 0;
+        viewDesc.Texture2D.MipLevels = texDesc.MipLevels;
+        viewDesc.Texture2D.PlaneSlice = 0;
+        viewDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+        // SRV生成
+        m_Device->CreateShaderResourceView(m_Texture.Resource.Get(), &viewDesc, handleCPU);
+
+    }
+
+    // メッシュロード
+    {
+        std::wstring path = L"Resources/Models/teapot/teapot.obj";
+        if (not LoadMesh(path.c_str(), m_Meshes, m_Materials))
+        {
+            glib::Logger::FormatErrorLog("メッシュの読み込みに失敗しました。file: %s", path.c_str());
+            return false;
+        }
+        glib::Logger::FormatDebugLog("メッシュの読み込みに成功しました。file: %s", path.c_str());
+    }
+
     // 頂点バッファ
     {
-        // 頂点データ  
-        VertexPositionTexture vertices[] =
-        {
-            // 前面  
-            { VertexPositionTexture(XMFLOAT3(-1.0f,  1.0f,  0.0f), XMFLOAT2(0.0f, 0.0f)) },
-            { VertexPositionTexture(XMFLOAT3( 1.0f,  1.0f,  0.0f), XMFLOAT2(1.0f, 0.0f)) },
-            { VertexPositionTexture(XMFLOAT3( 1.0f, -1.0f,  0.0f), XMFLOAT2(1.0f, 1.0f)) },
-            { VertexPositionTexture(XMFLOAT3(-1.0f, -1.0f,  0.0f), XMFLOAT2(0.0f, 1.0f)) },
-        };
+        auto& vertices = m_Meshes[0].Vertices;
+        auto vbSize = sizeof(GLibMeshVertex) * vertices.size();
 
-        // ヒーププロパティ
-        D3D12_HEAP_PROPERTIES prop{};
+        // ヒープ設定
+        D3D12_HEAP_PROPERTIES prop = {};
         prop.Type = D3D12_HEAP_TYPE_UPLOAD;
-        prop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-        prop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-        prop.CreationNodeMask = 1;
-        prop.VisibleNodeMask = 1;
 
         // リソース設定
-        D3D12_RESOURCE_DESC desc{};
+        D3D12_RESOURCE_DESC desc = {};
         desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-        desc.Alignment = 0;
-        desc.Width = sizeof(vertices);
+        desc.Width = vbSize;
         desc.Height = 1;
         desc.DepthOrArraySize = 1;
         desc.MipLevels = 1;
-        desc.Format = DXGI_FORMAT_UNKNOWN;
         desc.SampleDesc.Count = 1;
-        desc.SampleDesc.Quality = 0;
         desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-        desc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-        // リソース生成
-        hr = m_Device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(m_VB.GetAddressOf()));
-        if (FAILED(hr))
-        {
-            glib::Logger::FormatCriticalLog("リソースの生成に失敗しました。HRESULT=0x%x", hr);
-            return false;
-        }
-        glib::Logger::FormatDebugLog("リソースの生成に成功しました。");
+        // リソース作成
+        hr = m_Device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_NONE, &desc,
+            D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(m_VB.GetAddressOf()));
+        assert(SUCCEEDED(hr));
 
-        // マップ
+        // データ転送
         void* ptr = nullptr;
-        hr = m_VB->Map(0, nullptr, &ptr);
-        if (FAILED(hr))
-        {
-            glib::Logger::FormatCriticalLog("リソースのマップに失敗しました。 HRESULT=0x%x", hr);
-            return false;
-        }
-        glib::Logger::FormatDebugLog("リソースのマップに成功しました。");
-
-        // 頂点データをマップ先に
-        memcpy(ptr, vertices, sizeof(vertices));
-
-        // マップ解除
+        m_VB->Map(0, nullptr, &ptr);
+        memcpy(ptr, vertices.data(), vbSize);
         m_VB->Unmap(0, nullptr);
 
-        // 頂点バッファビューの設定
+        // VBV設定
         m_VBV.BufferLocation = m_VB->GetGPUVirtualAddress();
-        m_VBV.SizeInBytes = static_cast<UINT>(sizeof(vertices));
-        m_VBV.StrideInBytes = static_cast<UINT>(sizeof(VertexPositionTexture));
+        m_VBV.SizeInBytes = static_cast<UINT>(vbSize);
+        m_VBV.StrideInBytes = sizeof(GLibMeshVertex);
     }
+
 
     // インデックスバッファ
     {
 
         // インデックスデータ  
-        uint32_t indices[] =
-        {
-            // 前面  
-            0, 1, 2, 0, 2, 3,
-        };
-
-        ibvcount = _countof(indices);
+        auto size = sizeof(UINT32) * m_Meshes[0].Indices.size();
+        auto indices = m_Meshes[0].Indices.data();
 
         // ヒーププロパティ
         D3D12_HEAP_PROPERTIES prop{};
@@ -111,7 +153,7 @@ bool glib::GLibD3D12Wrapper::init()
         D3D12_RESOURCE_DESC desc{};
         desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
         desc.Alignment = 0;
-        desc.Width = sizeof(indices);
+        desc.Width = size;
         desc.Height = 1;
         desc.DepthOrArraySize = 1;
         desc.MipLevels = 1;
@@ -141,7 +183,7 @@ bool glib::GLibD3D12Wrapper::init()
         glib::Logger::FormatDebugLog("リソースのマップに成功しました。");
 
         // 頂点データをマップ先に
-        memcpy(ptr, indices, sizeof(indices));
+        memcpy(ptr, indices, size);
 
         // マップ解除
         m_IB->Unmap(0, nullptr);
@@ -149,24 +191,7 @@ bool glib::GLibD3D12Wrapper::init()
         // 頂点バッファビューの設定
         m_IBV.BufferLocation = m_IB->GetGPUVirtualAddress();
         m_IBV.Format = DXGI_FORMAT_R32_UINT;
-        m_IBV.SizeInBytes = static_cast<UINT>(sizeof(indices));
-    }
-
-    // ディスクリプタヒープの生成
-    {
-        D3D12_DESCRIPTOR_HEAP_DESC desc{};
-        desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-        desc.NumDescriptors = 5000;
-        desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-        desc.NodeMask = 0;
-
-        hr = m_Device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(m_DescriptorHeaps[GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].GetAddressOf()));
-        if (FAILED(hr))
-        {
-            glib::Logger::FormatCriticalLog("ディスクリプタヒープの作成に失敗しました。 HRESULT=0x%x", hr);
-            return false;
-        }
-        glib::Logger::FormatDebugLog("ディスクリプタヒープの作成に成功しました。");
+        m_IBV.SizeInBytes = static_cast<UINT>(size);
     }
 
     // 定数バッファ生成
@@ -391,24 +416,6 @@ bool glib::GLibD3D12Wrapper::init()
 
     // パイプラインステート生成
     {
-        // 入力レイアウト(InputLayout)
-        D3D12_INPUT_ELEMENT_DESC elements[2]{};
-        elements[0].SemanticName = "POSITION";
-        elements[0].SemanticIndex = 0;
-        elements[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
-        elements[0].InputSlot = 0;
-        elements[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-        elements[0].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-        elements[0].InstanceDataStepRate = 0;
-
-        elements[1].SemanticName = "TEXCOORD";
-        elements[1].SemanticIndex = 0;
-        elements[1].Format = DXGI_FORMAT_R32G32_FLOAT;
-        elements[1].InputSlot = 0;
-        elements[1].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-        elements[1].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-        elements[1].InstanceDataStepRate = 0;
-
         // ラスタライザーステートの設定
         D3D12_RASTERIZER_DESC descRS{};
         descRS.FillMode = D3D12_FILL_MODE_SOLID;
@@ -462,7 +469,7 @@ bool glib::GLibD3D12Wrapper::init()
 
         // パイプラインステートの設定
         D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};
-        desc.InputLayout = { elements, _countof(elements) };
+        desc.InputLayout = GLibMeshVertex::InputLayout;
         desc.pRootSignature = m_Rootsignature.Get();
         desc.VS = {vs.Code(), vs.Size()};
         desc.PS = {ps.Code(), ps.Size()};
@@ -485,53 +492,6 @@ bool glib::GLibD3D12Wrapper::init()
             return false;
         }
         glib::Logger::FormatDebugLog("パイプラインステートの作成に成功しました。");
-    }
-
-    // テクスチャ生成
-    {
-        ResourceUploadBatch batch(m_Device.Get());
-        batch.Begin();
-
-        // 生成
-        std::wstring path = L"Resources/Images/texture.dds";
-        hr = CreateDDSTextureFromFile(m_Device.Get(), batch, path.c_str(), m_Texture.Resource.GetAddressOf(), true);
-        if (FAILED(hr))
-        {
-            glib::Logger::FormatCriticalLog("DDSファイルの読み込みに失敗しました。 HRESULT=0x%x", hr);
-            return false;
-        }
-        glib::Logger::FormatDebugLog("DDSファイルの読み込みに成功しました。");
-
-        auto future = batch.End(m_CommandQueue.Get());
-
-        future.wait();
-
-        auto incrementSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-        auto handleCPU = m_DescriptorHeaps[GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->GetCPUDescriptorHandleForHeapStart();
-        auto handleGPU = m_DescriptorHeaps[GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->GetGPUDescriptorHandleForHeapStart();
-
-        handleCPU.ptr += incrementSize * 2;
-        handleGPU.ptr += incrementSize * 2;
-
-        m_Texture.HandleCPU = handleCPU;
-        m_Texture.HandleGPU = handleGPU;
-
-        auto texDesc = m_Texture.Resource->GetDesc();
-
-        // SRVの設定
-        D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc{};
-        viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-        viewDesc.Format = texDesc.Format;
-        viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        viewDesc.Texture2D.MostDetailedMip = 0;
-        viewDesc.Texture2D.MipLevels = texDesc.MipLevels;
-        viewDesc.Texture2D.PlaneSlice = 0;
-        viewDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-
-        // SRV生成
-        m_Device->CreateShaderResourceView(m_Texture.Resource.Get(), &viewDesc, handleCPU);
-
     }
 
     return true;
@@ -862,10 +822,9 @@ void glib::GLibD3D12Wrapper::BeginRender()
         auto rect = glib::GetRect();
         m_CommandList->RSSetScissorRects(1, &rect);
 
+        auto count = static_cast<UINT32>(m_Meshes[0].Indices.size());
         m_CommandList->SetGraphicsRootConstantBufferView(0, m_CBVs[m_FrameIndex * 2 + 0].Desc.BufferLocation);
-        m_CommandList->DrawIndexedInstanced(ibvcount, 1, 0, 0, 0);
-        m_CommandList->SetGraphicsRootConstantBufferView(0, m_CBVs[m_FrameIndex * 2 + 1].Desc.BufferLocation);
-        m_CommandList->DrawIndexedInstanced(ibvcount, 1, 0, 0, 0);
+        m_CommandList->DrawIndexedInstanced(count, 1, 0, 0, 0);
     }
 }
 
