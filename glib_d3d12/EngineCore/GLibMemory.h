@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <list>
+#include <string>
 #include <GLibLogger.h>
 
 namespace glib
@@ -14,9 +15,11 @@ namespace glib
 	{
 		if (p != nullptr)
 		{
+			char buf[256];
+			sprintf_s(buf, sizeof(buf), "%p", static_cast<void*>(p));
 			delete p;
 			p = nullptr;
-			Logger::FormatDebugLog("SafeDelete: ポインタを削除しました。");
+			Logger::FormatDebugLog("SafeDelete: ポインタを削除しました。0x%s", buf);
 		}
 		else
 		{
@@ -29,9 +32,11 @@ namespace glib
 	{
 		if (ptr != nullptr)
 		{
+			char buf[256];
+			sprintf_s(buf, sizeof(buf), "%p", static_cast<void*>(ptr));
 			ptr->Release();
 			ptr = nullptr;
-			Logger::FormatDebugLog("SafeReleaseDX: DirectX リソースを解放しました。");
+			Logger::FormatDebugLog("SafeReleaseDX: DirectX リソースを解放しました。0x%s", buf);
 		}
 		else
 		{

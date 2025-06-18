@@ -208,14 +208,14 @@ bool glib::GLibD3D12Wrapper::init()
         desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
         desc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-        for (UINT32 i = 0; i < m_FrameCount; i++)
+        for (UINT32 i = 0; i < m_FrameCount * 2; i++)
         {
             m_CB.push_back(GLibComPtr<ID3D12Resource>());
             m_CBVs.push_back(ConstantBufferView<Transform>());
         }
 
         auto incrementSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-        for (UINT32 i = 0; i < m_FrameCount; i++)
+        for (UINT32 i = 0; i < m_FrameCount * 2; i++)
         {
             // リソース生成
             hr = m_Device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(m_CB[i].GetAddressOf()));
@@ -263,6 +263,72 @@ bool glib::GLibD3D12Wrapper::init()
             m_CBVs[i].pBuffer->View = XMMatrixLookAtRH(eyePos, targetPos, upward);
             m_CBVs[i].pBuffer->Proj = XMMatrixPerspectiveFovRH(fovY, aspect, 0.01f, 100000.0f);
         }
+    }
+
+    // 深度バッファ
+    {
+        // リソース
+        D3D12_HEAP_PROPERTIES prop{};
+        prop.Type = D3D12_HEAP_TYPE_DEFAULT;
+        prop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+        prop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+        prop.CreationNodeMask = 1;
+        prop.VisibleNodeMask = 1;
+
+        D3D12_RESOURCE_DESC resDesc{};
+        resDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        resDesc.Alignment = 0;
+        resDesc.Width = glib::GetWindow()->GetClientWidth();
+        resDesc.Height = glib::GetWindow()->GetClientHeight();
+        resDesc.DepthOrArraySize = 1;
+        resDesc.MipLevels = 1;
+        resDesc.Format = DXGI_FORMAT_D32_FLOAT;
+        resDesc.SampleDesc.Count = 1;
+        resDesc.SampleDesc.Quality = 0;
+        resDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+        resDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+        
+        D3D12_CLEAR_VALUE clearValue{};
+        clearValue.Format = DXGI_FORMAT_D32_FLOAT;
+        clearValue.DepthStencil.Depth = 1.0;
+        clearValue.DepthStencil.Stencil = 0;
+
+        hr = m_Device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearValue, IID_PPV_ARGS(m_DepthBuffer.GetAddressOf()));
+        if (FAILED(hr))
+        {
+            glib::Logger::FormatCriticalLog("深度バッファリソースの生成に失敗しました。 HRESULT=0x%x", hr);
+            return false;
+        }
+        glib::Logger::FormatDebugLog("深度バッファリソースの生成に成功しました。");
+
+        // ディスクリプタヒープ
+        D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+        heapDesc.NumDescriptors = 1;
+        heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+        heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        heapDesc.NodeMask = 0;
+
+        hr = m_Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_DescriptorHeaps[GLIB_DESCRIPTOR_HEAP_TYPE_DSV].GetAddressOf()));
+        if (FAILED(hr))
+        {
+            glib::Logger::FormatCriticalLog("深度バッファディスクリプタヒープの生成に失敗しました。 HRESULT=0x%x", hr);
+            return false;
+        }
+        glib::Logger::FormatDebugLog("深度バッファディスクリプタヒープ生成に成功しました。");
+
+        auto handle = m_DescriptorHeaps[GLIB_DESCRIPTOR_HEAP_TYPE_DSV]->GetCPUDescriptorHandleForHeapStart();
+        auto incrementSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+        
+        D3D12_DEPTH_STENCIL_VIEW_DESC viewDesc{};
+        viewDesc.Format = DXGI_FORMAT_D32_FLOAT;
+        viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+        viewDesc.Texture2D.MipSlice = 0;
+        viewDesc.Flags = D3D12_DSV_FLAG_NONE;
+
+        // 生成
+        m_Device->CreateDepthStencilView(m_DepthBuffer.Get(), &viewDesc, handle);
+
+        m_HandleDSV = handle;
     }
 
     // ルートシグネチャ生成
@@ -372,6 +438,14 @@ bool glib::GLibD3D12Wrapper::init()
         glib::GLibBinaryLoader vs("x64/Release/SpriteVS.cso");
         glib::GLibBinaryLoader ps("x64/Release/SpritePS.cso");
 #endif
+
+        // 深度ステンシルステートの設定
+        D3D12_DEPTH_STENCIL_DESC descDSS{};
+        descDSS.DepthEnable = TRUE;
+        descDSS.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+        descDSS.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+        descDSS.StencilEnable = FALSE;
+
         // パイプラインステートの設定
         D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};
         desc.InputLayout = { elements, _countof(elements) };
@@ -380,13 +454,12 @@ bool glib::GLibD3D12Wrapper::init()
         desc.PS = {ps.Code(), ps.Size()};
         desc.RasterizerState = descRS;
         desc.BlendState = descBS;
-        desc.DepthStencilState.DepthEnable = FALSE;
-        desc.DepthStencilState.StencilEnable = FALSE;
+        desc.DepthStencilState = descDSS;
         desc.SampleMask = UINT_MAX;
         desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
         desc.NumRenderTargets = 1;
         desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-        desc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+        desc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
         desc.SampleDesc.Count = 1;
         desc.SampleDesc.Quality = 0;
 
@@ -701,19 +774,22 @@ void glib::GLibD3D12Wrapper::BeginRender()
     m_CommandList->ResourceBarrier(1, &barrier);
 
     // レンダーターゲット設定
-    m_CommandList->OMSetRenderTargets(1, &m_HandlesRTV[m_FrameIndex], FALSE, nullptr);
+    m_CommandList->OMSetRenderTargets(1, &m_HandlesRTV[m_FrameIndex], FALSE, &m_HandleDSV);
 
     // レンダーターゲットビューのクリア
     m_CommandList->ClearRenderTargetView(m_HandlesRTV[m_FrameIndex], &m_ClearColor.x, 0, nullptr);
 
+    // 深度バッファクリア
+    m_CommandList->ClearDepthStencilView(m_HandleDSV, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
     // 描画
     {
         m_Rotate += XMConvertToRadians(45.0f) * glib::DeltaTime();
-        m_CBVs[m_FrameIndex].pBuffer->World = XMMatrixRotationZ(m_Rotate) * XMMatrixRotationX(m_Rotate) * XMMatrixRotationY(m_Rotate);
+        m_CBVs[m_FrameIndex * 2 + 0].pBuffer->World = XMMatrixRotationZ(m_Rotate) * XMMatrixRotationX(m_Rotate) * XMMatrixRotationY(m_Rotate);
+        m_CBVs[m_FrameIndex * 2 + 1].pBuffer->World = XMMatrixRotationY(m_Rotate) * XMMatrixScaling(2.0f, 0.9f, 0.9f);
 
         m_CommandList->SetGraphicsRootSignature(m_Rootsignature.Get());
         m_CommandList->SetDescriptorHeaps(1, m_DescriptorHeaps[GLIB_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].GetAddressOf());
-        m_CommandList->SetGraphicsRootConstantBufferView(0, m_CBVs[m_FrameIndex].Desc.BufferLocation);
         m_CommandList->SetPipelineState(m_PSO.Get());
         m_CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         m_CommandList->IASetVertexBuffers(0, 1, &m_VBV);
@@ -722,6 +798,10 @@ void glib::GLibD3D12Wrapper::BeginRender()
         m_CommandList->RSSetViewports(1, &viewport);
         auto rect = glib::GetRect();
         m_CommandList->RSSetScissorRects(1, &rect);
+
+        m_CommandList->SetGraphicsRootConstantBufferView(0, m_CBVs[m_FrameIndex * 2 + 0].Desc.BufferLocation);
+        m_CommandList->DrawIndexedInstanced(ibvcount, 1, 0, 0, 0);
+        m_CommandList->SetGraphicsRootConstantBufferView(0, m_CBVs[m_FrameIndex * 2 + 1].Desc.BufferLocation);
         m_CommandList->DrawIndexedInstanced(ibvcount, 1, 0, 0, 0);
     }
 }

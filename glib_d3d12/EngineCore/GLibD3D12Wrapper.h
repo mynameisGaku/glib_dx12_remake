@@ -58,6 +58,7 @@ namespace glib
         vector<UINT64>                                  m_FenceCounters{};
         UINT32                                          m_FrameIndex{};
         vector<D3D12_CPU_DESCRIPTOR_HANDLE>             m_HandlesRTV{};
+        D3D12_CPU_DESCRIPTOR_HANDLE                     m_HandleDSV{};
         GLibComPtr<ID3D12RootSignature>                 m_Rootsignature{};
         GLibComPtr<ID3D12PipelineState>                 m_PSO{};
 
@@ -69,6 +70,7 @@ namespace glib
         UINT32 ibvcount;
         vector<GLibComPtr<ID3D12Resource>>              m_CB{};
         vector<ConstantBufferView<Transform>>           m_CBVs{};
+        GLibComPtr<ID3D12Resource>                      m_DepthBuffer{};
 
 
         XMFLOAT4                                        m_ClearColor;

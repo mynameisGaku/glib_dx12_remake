@@ -14,7 +14,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         if (wParam == VK_ESCAPE)
         {
             PostQuitMessage(0);
-            glib::Logger::InfoLog("Escapeキーが押されたため、アプリケーションを終了します。");
             return 0;
         }
         break;
@@ -62,7 +61,7 @@ void glib::GLibWindow::Finalize(const LPCWSTR& wndName, int width, int height)
         wc.hbrBackground = (HBRUSH)GetStockObject(DKGRAY_BRUSH);
         wc.lpszClassName = L"EngineWindowClass";
         RegisterClassEx(&wc);
-        glib::Logger::FormatDebugLog("Window class registered: %s", glib::WStringToString(wc.lpszClassName).c_str());
+        glib::Logger::FormatDebugLog("ウィンドウクラスを登録しました。: %s", glib::WStringToString(wc.lpszClassName).c_str());
     }
 
     // 表示位置、ウィンドウの大きさ調整
@@ -82,18 +81,18 @@ void glib::GLibWindow::Finalize(const LPCWSTR& wndName, int width, int height)
             windowPosX, windowPosY, windowWidth, windowHeight,
             nullptr, nullptr, GetModuleHandle(nullptr), nullptr
         );
-        glib::Logger::FormatDebugLog("Window created: %s at (%d, %d) with size (%d, %d)", glib::WStringToString(m_WindowTitle).c_str(), windowPosX, windowPosY, windowWidth, windowHeight);
+        glib::Logger::FormatDebugLog("ウィンドウが作成されました。: ウィンドウ名 %s (%d, %d) ウィンドウサイズ (%d, %d)", glib::WStringToString(m_WindowTitle).c_str(), windowPosX, windowPosY, windowWidth, windowHeight);
     }
 
     if (m_HWnd == nullptr)
     {
-        MessageBox(nullptr, L"Failed to create window", L"Error", MB_ICONERROR);
+        MessageBox(nullptr, L"ウィンドウの作成に失敗しました。", L"Error", MB_ICONERROR);
         glib::Logger::ErrorLog("Failed to create window.");
         return;
     }
 
     ShowWindow(m_HWnd, SW_SHOW);
-    glib::Logger::DebugLog("Window shown successfully.");
+    glib::Logger::DebugLog("ウィンドウの表示に成功しました。");
 }
 
 void glib::GLibWindow::SetName(const LPCWSTR& wndName, bool isOutputLog)
